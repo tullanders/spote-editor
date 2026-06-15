@@ -1,4 +1,4 @@
-// Public API – allt som exporteras härifrån är det som användaren importerar
 export { SpoteEditor } from './components/SpoteEditor'
-export type { SpoteEditorProps } from './components/SpoteEditor'
-export type { } from './types'
+export type { SpoteEditorProps, NoteHit, EditorMode } from './components/SpoteEditor'
+export { DEFAULT_COMMANDS } from './components/SpoteEditor/command-core/commands'
+export type { Command, CommandGroup, BubbleAction } from './components/SpoteEditor/command-core/core.types'
