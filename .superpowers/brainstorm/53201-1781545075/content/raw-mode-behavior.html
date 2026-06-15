@@ -1,0 +1,64 @@
+<h2>Vad ska "raw MD-läge" betyda?</h2>
+<p class="subtitle">Samma innehåll, tre olika beteenden. Vilket är ditt raw-läge? (WYSIWYG-läget är alltid det renderade — frågan gäller hur det <em>andra</em> läget känns.)</p>
+
+<style>
+  .cmp { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; margin-top:8px; }
+  .pane { border:1px solid var(--border,#333); border-radius:10px; overflow:hidden; cursor:pointer; transition:.15s; background:rgba(255,255,255,.02); }
+  .pane:hover { border-color:#6aa3ff; transform:translateY(-2px); }
+  .pane h3 { margin:0; padding:10px 12px; font-size:13px; border-bottom:1px solid var(--border,#333); }
+  .pane .tag { font-size:10px; opacity:.6; font-weight:400; display:block; margin-top:2px; }
+  .doc { padding:12px; font-family:ui-monospace,Menlo,monospace; font-size:12.5px; line-height:1.7; min-height:230px; }
+  .doc .syn { color:#7d8aa3; }            /* synlig markdown-syntax */
+  .doc .h { font-weight:700; }
+  .doc .bold { font-weight:700; }
+  .doc .ital { font-style:italic; }
+  .doc .code { background:rgba(255,255,255,.08); padding:1px 4px; border-radius:4px; }
+  .doc .link { color:#6aa3ff; text-decoration:underline; }
+  .doc .caret { border-left:2px solid #6aa3ff; animation:bl 1s steps(1) infinite; }
+  @keyframes bl { 50%{opacity:0} }
+  .wys { font-family:system-ui,sans-serif; font-size:14px; }
+  .wys h4 { font-size:18px; margin:0 0 6px; }
+  .note { font-size:11px; opacity:.65; padding:6px 12px 12px; }
+</style>
+
+<div class="cmp">
+  <div class="pane" data-choice="plain" onclick="toggleSelect(this)">
+    <h3>A · Ren raw <span class="tag">CM6, syntax ALLTID synlig (som kravspecen)</span></h3>
+    <div class="doc">
+      <div class="h"><span class="syn"># </span>Projektplan</div>
+      <div>Detta är <span class="syn">**</span><span class="bold">viktigt</span><span class="syn">**</span> och lite <span class="syn">*</span><span class="ital">kursivt</span><span class="syn">*</span>.</div>
+      <div>Kör <span class="syn">`</span><span class="code">npm run dev</span><span class="syn">`</span> först.</div>
+      <div><span class="syn">[</span><span class="link">Spote</span><span class="syn">](https://spote.cloud)</span></div>
+      <div><span class="syn">- </span>Punkt ett</div>
+      <div><span class="syn">- </span>Punkt två<span class="caret">&nbsp;</span></div>
+    </div>
+    <div class="note">Du ser exakt vad som sparas. Förutsägbart, "kod-känsla". Inget gömmer sig.</div>
+  </div>
+
+  <div class="pane" data-choice="hybrid" onclick="toggleSelect(this)">
+    <h3>B · Live preview <span class="tag">syntax göms utom på raden du står i (Obsidian-stil)</span></h3>
+    <div class="doc">
+      <div class="h" style="font-size:16px"><span class="h">Projektplan</span></div>
+      <div>Detta är <span class="bold">viktigt</span> och lite <span class="ital">kursivt</span>.</div>
+      <div>Kör <span class="code">npm run dev</span> först.</div>
+      <div><span class="link">Spote</span></div>
+      <div>• Punkt ett</div>
+      <div><span class="syn">- </span>Punkt två<span class="caret">&nbsp;</span> <span style="opacity:.5;font-size:10px">← syntax syns här (aktiv rad)</span></div>
+    </div>
+    <div class="note">Ser nästan renderat ut, men markdownen "öppnar sig" där du redigerar. "Inte i vägen".</div>
+  </div>
+
+  <div class="pane" data-choice="wysiwyg" onclick="toggleSelect(this)">
+    <h3>C · Bara WYSIWYG <span class="tag">inget separat raw-läge alls</span></h3>
+    <div class="doc wys">
+      <h4>Projektplan</h4>
+      <div>Detta är <span class="bold">viktigt</span> och lite <span class="ital">kursivt</span>.</div>
+      <div style="margin:6px 0">Kör <span class="code">npm run dev</span> först.</div>
+      <div><span class="link">Spote</span></div>
+      <ul style="margin:6px 0 0 18px"><li>Punkt ett</li><li>Punkt två<span class="caret">&nbsp;</span></li></ul>
+    </div>
+    <div class="note">Enklast, en motor — men då får du inget "se den råa markdownen"-läge.</div>
+  </div>
+</div>
+
+<p class="label" style="margin-top:14px">Klicka det som matchar din vision. Du sa "raw md-läge" + "wysiwyg-läge", så troligen A eller B som det andra läget — men jag vill höra vilket.</p>

@@ -1,0 +1,64 @@
+<h2>Intern arkitektur</h2>
+<p class="subtitle">Samma kommandolista, samma meny-UI, två exekverare. Markdown-strängen binder ihop allt.</p>
+
+<style>
+  .arch { font-family:system-ui; font-size:13px; }
+  .shell { border:2px solid #6aa3ff; border-radius:12px; padding:14px; margin-top:6px; }
+  .shell > .ttl { font-weight:700; color:#6aa3ff; margin-bottom:4px; }
+  .shell > .sub { font-size:11px; opacity:.6; margin-bottom:12px; }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .box { border:1px solid #3a466b; border-radius:10px; padding:12px; background:rgba(255,255,255,.03); }
+  .box h4 { margin:0 0 8px; font-size:13px; }
+  .core { border-color:#5ad29a; }
+  .core h4 { color:#5ad29a; }
+  .chip { display:inline-block; background:#1c2333; border:1px solid #3a466b; border-radius:6px; padding:3px 8px; margin:3px 4px 0 0; font-size:11.5px; font-family:ui-monospace,monospace; }
+  .chip.green { border-color:#5ad29a55; }
+  .adapters { margin-top:14px; }
+  .ad { }
+  .ad h4 { font-size:13px; }
+  .milk h4 { color:#ff9f6a; }
+  .cm h4 { color:#c08aff; }
+  .arrow { text-align:center; font-size:11px; opacity:.6; margin:8px 0; }
+  .src { text-align:center; margin-top:14px; padding:8px; border:1px dashed #5ad29a; border-radius:8px; font-family:ui-monospace,monospace; font-size:12px; color:#5ad29a; }
+  .note3 { font-size:11px; opacity:.6; margin-top:6px; }
+</style>
+
+<div class="arch">
+  <div class="shell">
+    <div class="ttl">&lt;SpoteEditor&gt; — skal</div>
+    <div class="sub">äger value/onChange (markdown), mode-toggle, renderar aktiv motor + delade overlays</div>
+
+    <div class="box core">
+      <h4>Delad kärna — vet inget om motorn</h4>
+      <span class="chip green">commands.ts</span>
+      <span class="chip green">CommandMenu</span>
+      <span class="chip green">SelectionBubble</span>
+      <span class="chip green">LinkPopover (URL + onSearchNotes)</span>
+      <div class="note3">commands.ts = ren metadata (id, label, ikon, grupp, keywords). Nyckeltypen härleds härifrån → saknad handler i en adapter ger typfel.</div>
+    </div>
+
+    <div class="arrow">▼ samma commandId skickas till rätt adapter ▼</div>
+
+    <div class="row adapters">
+      <div class="box ad milk">
+        <h4>Milkdown-adapter (WYSIWYG)</h4>
+        <span class="chip">MilkdownEditor</span>
+        <span class="chip">milkdownCommands</span>
+        <span class="chip">slashPlugin</span>
+        <div class="note3">commandId → ProseMirror-transaktion. Bubbla på markering.</div>
+      </div>
+      <div class="box ad cm">
+        <h4>CodeMirror-adapter (raw)</h4>
+        <span class="chip">CodeMirrorEditor</span>
+        <span class="chip">cmCommands</span>
+        <span class="chip">slashExtension</span>
+        <span class="chip">wrapOnType</span>
+        <div class="note3">commandId → CM6-textredigering. Bubbla på markering. Synlig markdown.</div>
+      </div>
+    </div>
+
+    <div class="src">▲ ▼ markdown-sträng = gemensam källa (toggle behåller innehåll) ▲ ▼</div>
+  </div>
+</div>
+
+<p class="label" style="margin-top:12px">Grön = byggs en gång, återanvänds i båda lägena. Orange/lila = tunn motor-specifik kod. Det är så "igenkänning i båda vyerna" uppstår automatiskt.</p>
