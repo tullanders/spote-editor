@@ -5,17 +5,22 @@ import { CodeMirrorEditor } from './codemirror/CodeMirrorEditor'
 import { MilkdownEditor } from './milkdown/MilkdownEditor'
 import { LinkPopover } from './command-core/LinkPopover'
 import type { MenuPosition } from './command-core/useCommandMenu'
+import type { Command } from './command-core/core.types'
 
 interface LinkRequest {
   position: MenuPosition
   apply: (href: string) => void
 }
 
+// Stable default reference so we don't allocate a new array (and re-register the
+// menu's keydown listeners) on every render when no commands prop is passed.
+const DEFAULT_COMMAND_LIST: Command[] = [...DEFAULT_COMMANDS]
+
 export function SpoteEditor(props: SpoteEditorProps) {
   const {
     value, onChange, mode: modeProp, onModeChange,
-    onSearchNotes, onResolveNoteHref, commands = [...DEFAULT_COMMANDS],
-    readOnly, className, autoFocus,
+    onSearchNotes, onResolveNoteHref, commands = DEFAULT_COMMAND_LIST,
+    readOnly, className, autoFocus, placeholder,
   } = props
 
   const [internalMode, setInternalMode] = useState<EditorMode>('wysiwyg')
@@ -50,6 +55,7 @@ export function SpoteEditor(props: SpoteEditorProps) {
         commands={commands}
         readOnly={readOnly}
         autoFocus={autoFocus}
+        placeholder={placeholder}
         onRequestLink={onRequestLink}
       />
       {link && (

@@ -20,6 +20,8 @@ export interface MilkdownEditorProps {
   commands: Command[]
   readOnly?: boolean
   autoFocus?: boolean
+  /** Accepted for prop parity with the raw editor; not yet applied in WYSIWYG (v1). */
+  placeholder?: string
   onRequestLink: (position: MenuPosition, applyHref: (href: string) => void) => void
 }
 

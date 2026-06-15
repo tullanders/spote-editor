@@ -1,4 +1,5 @@
 import { EditorSelection, type EditorState, type TransactionSpec } from '@codemirror/state'
+import type { CommandId } from '../command-core/commands'
 
 function linePrefix(state: EditorState, prefix: string): TransactionSpec {
   const line = state.doc.lineAt(state.selection.main.from)
@@ -35,20 +36,24 @@ function insertLink(state: EditorState): TransactionSpec {
   }
 }
 
+// Keyed by every CommandId so adding a command to commands.ts forces a CM handler
+// here (a missing key is a compile error) — same guarantee the Milkdown adapter has.
+const handlers: Record<CommandId, (state: EditorState) => TransactionSpec> = {
+  h1: (state) => linePrefix(state, '# '),
+  h2: (state) => linePrefix(state, '## '),
+  h3: (state) => linePrefix(state, '### '),
+  'bullet-list': (state) => linePrefix(state, '- '),
+  'ordered-list': (state) => linePrefix(state, '1. '),
+  quote: (state) => linePrefix(state, '> '),
+  bold: (state) => wrapSelection(state, '**'),
+  italic: (state) => wrapSelection(state, '*'),
+  code: (state) => wrapSelection(state, '`'),
+  codeblock: (state) => insertBlock(state, '```\n\n```'),
+  divider: (state) => insertBlock(state, '\n---\n'),
+  link: (state) => insertLink(state),
+}
+
 export function applyCmCommand(state: EditorState, id: string): TransactionSpec {
-  switch (id) {
-    case 'h1': return linePrefix(state, '# ')
-    case 'h2': return linePrefix(state, '## ')
-    case 'h3': return linePrefix(state, '### ')
-    case 'bullet-list': return linePrefix(state, '- ')
-    case 'ordered-list': return linePrefix(state, '1. ')
-    case 'quote': return linePrefix(state, '> ')
-    case 'bold': return wrapSelection(state, '**')
-    case 'italic': return wrapSelection(state, '*')
-    case 'code': return wrapSelection(state, '`')
-    case 'codeblock': return insertBlock(state, '```\n\n```')
-    case 'divider': return insertBlock(state, '\n---\n')
-    case 'link': return insertLink(state)
-    default: return { changes: [] }
-  }
+  const handler = (handlers as Record<string, (state: EditorState) => TransactionSpec>)[id]
+  return handler ? handler(state) : { changes: [] }
 }

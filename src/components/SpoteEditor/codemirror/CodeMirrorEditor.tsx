@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { EditorState } from '@codemirror/state'
-import { EditorView, keymap } from '@codemirror/view'
+import { EditorView, keymap, placeholder as cmPlaceholder } from '@codemirror/view'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { markdown } from '@codemirror/lang-markdown'
 import { wrapOnType } from './wrapOnType'
@@ -18,10 +18,11 @@ export interface CodeMirrorEditorProps {
   commands: Command[]
   readOnly?: boolean
   autoFocus?: boolean
+  placeholder?: string
   onRequestLink: (position: MenuPosition, applyHref: (href: string) => void) => void
 }
 
-export function CodeMirrorEditor({ value, onChange, commands, readOnly, autoFocus, onRequestLink }: CodeMirrorEditorProps) {
+export function CodeMirrorEditor({ value, onChange, commands, readOnly, autoFocus, placeholder, onRequestLink }: CodeMirrorEditorProps) {
   const hostRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
   const triggerPosRef = useRef<number>(0)
@@ -39,6 +40,7 @@ export function CodeMirrorEditor({ value, onChange, commands, readOnly, autoFocu
         history(),
         keymap.of([...defaultKeymap, ...historyKeymap]),
         markdown(),
+        ...(placeholder ? [cmPlaceholder(placeholder)] : []),
         wrapOnType,
         slashExtension({
           onOpen: (coords, at) => { triggerPosRef.current = at; menuRef.current.openAt(coords) },
