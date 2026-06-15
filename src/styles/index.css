@@ -1,1 +1,107 @@
-/* Placeholder – component styles go here */
+.spote-editor {
+  --spote-bg: #ffffff;
+  --spote-fg: #1a1a1a;
+  --spote-border: #d8dce3;
+  --spote-accent: #3b6df0;
+  --spote-popover-bg: #ffffff;
+  --spote-popover-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  --spote-radius: 10px;
+  --spote-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  border: 1px solid var(--spote-border);
+  border-radius: var(--spote-radius);
+  background: var(--spote-bg);
+  color: var(--spote-fg);
+  overflow: hidden;
+}
+
+.spote-editor__toolbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--spote-border);
+}
+
+.spote-editor__mode-toggle {
+  font-size: 12px;
+  padding: 4px 10px;
+  border: 1px solid var(--spote-border);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.spote-editor__cm { padding: 12px; }
+.spote-editor__cm .cm-editor { font-family: var(--spote-mono); font-size: 13px; outline: none; }
+
+.spote-command-menu,
+.spote-link-popover {
+  z-index: 1000;
+  min-width: 200px;
+  background: var(--spote-popover-bg);
+  border: 1px solid var(--spote-border);
+  border-radius: 8px;
+  box-shadow: var(--spote-popover-shadow);
+  padding: 4px;
+}
+
+.spote-command-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.spote-command-menu__item.is-active { background: rgba(59, 109, 240, 0.12); }
+.spote-command-menu__icon { width: 22px; font-family: var(--spote-mono); opacity: 0.7; }
+
+.spote-bubble {
+  z-index: 1000;
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  background: var(--spote-popover-bg);
+  border: 1px solid var(--spote-border);
+  border-radius: 8px;
+  box-shadow: var(--spote-popover-shadow);
+}
+.spote-bubble__btn {
+  min-width: 30px;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-family: var(--spote-mono);
+}
+.spote-bubble__btn:hover { background: rgba(59, 109, 240, 0.12); }
+
+.spote-link-popover__input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  border: 1px solid var(--spote-border);
+  border-radius: 6px;
+  font-size: 13px;
+}
+.spote-link-popover__hits { list-style: none; margin: 4px 0 0; padding: 0; }
+.spote-link-popover__hits button {
+  width: 100%;
+  text-align: left;
+  padding: 6px 8px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.spote-link-popover__hits button:hover { background: rgba(59, 109, 240, 0.12); }
