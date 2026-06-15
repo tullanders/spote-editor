@@ -99,11 +99,16 @@ export function CodeMirrorEditor({ value, onChange, commands, readOnly, autoFocu
     const view = viewRef.current
     if (!view) return
     if (action === 'link') {
-      const r = view.state.selection.main
-      const coords = view.coordsAtPos(r.from)
+      // Snapshot the selection as primitives now; the link popover is async, so
+      // re-read against the current doc length when applying to stay in range.
+      const { from, to } = view.state.selection.main
+      const coords = view.coordsAtPos(from)
       onRequestLink({ x: coords?.left ?? 0, y: (coords?.top ?? 0) - 40 }, (href) => {
-        const label = view.state.sliceDoc(r.from, r.to) || 'länk'
-        view.dispatch({ changes: { from: r.from, to: r.to, insert: `[${label}](${href})` } })
+        const docLen = view.state.doc.length
+        const safeFrom = Math.min(from, docLen)
+        const safeTo = Math.min(to, docLen)
+        const label = view.state.sliceDoc(safeFrom, safeTo) || 'länk'
+        view.dispatch({ changes: { from: safeFrom, to: safeTo, insert: `[${label}](${href})` } })
       })
     } else {
       view.dispatch(applyCmCommand(view.state, action))
