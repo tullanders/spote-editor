@@ -35,15 +35,19 @@
 .spote-editor__cm { padding: 12px; }
 .spote-editor__cm .cm-editor { font-family: var(--spote-mono); font-size: 13px; outline: none; }
 
+/* These overlays are portaled to document.body, OUTSIDE .spote-editor, so the
+   theme variables don't cascade to them — every var() needs a fallback here. */
 .spote-command-menu,
 .spote-link-popover {
   z-index: 1000;
   min-width: 200px;
-  background: var(--spote-popover-bg);
-  border: 1px solid var(--spote-border);
+  background: var(--spote-popover-bg, #ffffff);
+  color: var(--spote-fg, #1a1a1a);
+  border: 1px solid var(--spote-border, #d8dce3);
   border-radius: 8px;
-  box-shadow: var(--spote-popover-shadow);
+  box-shadow: var(--spote-popover-shadow, 0 8px 24px rgba(0, 0, 0, 0.16));
   padding: 4px;
+  font-family: system-ui, sans-serif;
 }
 
 .spote-command-menu__item {
@@ -61,17 +65,18 @@
   cursor: pointer;
 }
 .spote-command-menu__item.is-active { background: rgba(59, 109, 240, 0.12); }
-.spote-command-menu__icon { width: 22px; font-family: var(--spote-mono); opacity: 0.7; }
+.spote-command-menu__icon { width: 22px; font-family: var(--spote-mono, ui-monospace, SFMono-Regular, Menlo, monospace); opacity: 0.7; }
 
 .spote-bubble {
   z-index: 1000;
   display: flex;
   gap: 2px;
   padding: 4px;
-  background: var(--spote-popover-bg);
-  border: 1px solid var(--spote-border);
+  background: var(--spote-popover-bg, #ffffff);
+  color: var(--spote-fg, #1a1a1a);
+  border: 1px solid var(--spote-border, #d8dce3);
   border-radius: 8px;
-  box-shadow: var(--spote-popover-shadow);
+  box-shadow: var(--spote-popover-shadow, 0 8px 24px rgba(0, 0, 0, 0.16));
 }
 .spote-bubble__btn {
   min-width: 30px;
@@ -81,7 +86,7 @@
   background: transparent;
   color: inherit;
   cursor: pointer;
-  font-family: var(--spote-mono);
+  font-family: var(--spote-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
 }
 .spote-bubble__btn:hover { background: rgba(59, 109, 240, 0.12); }
 
@@ -89,7 +94,7 @@
   width: 100%;
   box-sizing: border-box;
   padding: 6px 8px;
-  border: 1px solid var(--spote-border);
+  border: 1px solid var(--spote-border, #d8dce3);
   border-radius: 6px;
   font-size: 13px;
 }
