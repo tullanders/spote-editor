@@ -1,8 +1,23 @@
 # Note: CSS isolation from host styles (Tailwind etc.)
 
-**Requirement:** The whole editor — including the portaled menus — must be styleable
-by us and NOT disturbed by the host app's global CSS (Tailwind Preflight, resets,
-utility leakage, source-order wins).
+**Requirement:** The whole editor — including the portaled menus AND the rendered
+text content — must be styleable by us and NOT disturbed by the host app's global CSS
+(Tailwind Preflight, resets, utility leakage, source-order wins).
+
+This is NOT part of the command-plugins refactor (that's menu items/actions). Content
+typography lives here, with the menu/overlay isolation.
+
+## In scope: content typography (both modes)
+Today we ship almost no content CSS, so spacing/sizing is whatever Milkdown's default
+theme or the browser gives — e.g. **`li` items in a `ul` have too much margin/padding**.
+We must own a content stylesheet, scoped to the editor:
+- **WYSIWYG (Milkdown renders real DOM):** style `h1..h6`, `p`, `ul/ol/li` (tighten the
+  li spacing), `blockquote`, `pre/code`, `a`, `strong/em`, `hr`, tables. This both fixes
+  default spacing AND counters Tailwind Preflight stripping.
+- **Raw (CodeMirror):** editor chrome only — mono font, font-size, line-height, padding;
+  optionally markdown token colors via the language theme. No "rendered" content there.
+- Expose the key knobs as CSS custom properties (spacing, font sizes) so hosts can tune
+  without overriding selectors.
 
 **Current state (v1): NOT isolated.** The `spote-` class prefix prevents name
 collisions only. Real exposure points:
@@ -22,7 +37,9 @@ collisions only. Real exposure points:
 - Apply `all: revert` (or a thorough explicit reset) on the four roots: `.spote-editor`,
   `.spote-command-menu`, `.spote-link-popover`, `.spote-bubble`, then re-apply our styles.
 - Explicitly style editor **content** elements (headings, lists, blockquote, code,
-  strong, em, hr, links) so Preflight stripping is irrelevant.
+  strong, em, hr, links) so Preflight stripping is irrelevant — this is also where the
+  default-spacing fixes live (e.g. tighter `li` margins). See "In scope: content
+  typography" above.
 - Use `:where()` for our base so our resets stay low-specificity *internally* but the
   reset value (`revert`) neutralizes inherited host values at the boundary.
 - Limits: not bulletproof vs host `!important` or aggressive `* { }` rules. Good enough
