@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import type { Command } from './core.types'
+import type { SpotePlugin } from './plugin.types'
 import type { MenuPosition } from './useCommandMenu'
 
 export interface CommandMenuProps {
-  results: readonly Command[]
+  results: readonly SpotePlugin[]
   activeIndex: number
   position: MenuPosition
   onSelect: (commandId: string) => void

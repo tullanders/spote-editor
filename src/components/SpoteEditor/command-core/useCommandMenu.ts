@@ -1,16 +1,16 @@
 import { useMemo, useState, useCallback } from 'react'
-import type { Command } from './core.types'
-import { filterCommands } from './commands'
+import type { SpotePlugin } from './plugin.types'
+import { filterByQuery } from './pluginMenu'
 
 export interface MenuPosition { x: number; y: number }
 
-export function useCommandMenu(commands: readonly Command[]) {
+export function useCommandMenu(commands: readonly SpotePlugin[]) {
   const [open, setOpen] = useState(false)
   const [query, setQueryState] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
   const [position, setPosition] = useState<MenuPosition>({ x: 0, y: 0 })
 
-  const results = useMemo(() => filterCommands(query, commands), [query, commands])
+  const results = useMemo(() => filterByQuery(commands, query), [query, commands])
 
   const openAt = useCallback((pos: MenuPosition) => {
     setPosition(pos)
@@ -29,7 +29,7 @@ export function useCommandMenu(commands: readonly Command[]) {
   const move = useCallback(
     (delta: number) => {
       setActiveIndex((i) => {
-        const max = Math.max(filterCommands(query, commands).length - 1, 0)
+        const max = Math.max(filterByQuery(commands, query).length - 1, 0)
         return Math.min(Math.max(i + delta, 0), max)
       })
     },
