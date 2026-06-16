@@ -1,31 +1,25 @@
 import { createPortal } from 'react-dom'
-import type { BubbleAction } from './core.types'
+import type { SpotePlugin } from './plugin.types'
 import type { MenuPosition } from './useCommandMenu'
 
 export interface SelectionBubbleProps {
+  plugins: SpotePlugin[]
   position: MenuPosition
-  onAction: (action: BubbleAction) => void
+  onSelect: (id: string) => void
 }
 
-const ACTIONS: { action: BubbleAction; label: string; icon: string }[] = [
-  { action: 'bold', label: 'Fet', icon: 'B' },
-  { action: 'italic', label: 'Kursiv', icon: 'I' },
-  { action: 'code', label: 'Kod', icon: '<>' },
-  { action: 'link', label: 'Skapa länk', icon: '🔗' },
-]
-
-export function SelectionBubble({ position, onAction }: SelectionBubbleProps) {
+export function SelectionBubble({ plugins, position, onSelect }: SelectionBubbleProps) {
   return createPortal(
     <div className="spote-bubble" style={{ position: 'fixed', left: position.x, top: position.y }}>
-      {ACTIONS.map(({ action, label, icon }) => (
+      {plugins.map((p) => (
         <button
-          key={action}
+          key={p.id}
           type="button"
-          aria-label={label}
+          aria-label={p.label}
           className="spote-bubble__btn"
-          onMouseDown={(e) => { e.preventDefault(); onAction(action) }}
+          onMouseDown={(e) => { e.preventDefault(); onSelect(p.id) }}
         >
-          {icon}
+          {p.icon}
         </button>
       ))}
     </div>,

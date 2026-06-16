@@ -8,5 +8,3 @@ export interface Command {
   keywords: string[]
 }
 
-// Selection-bubble actions are a fixed, small set in v1.
-export type BubbleAction = 'bold' | 'italic' | 'code' | 'link'
