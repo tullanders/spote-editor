@@ -12,10 +12,13 @@ import {
 } from '@milkdown/preset-commonmark'
 import type { PluginAction } from '../command-core/plugin.types'
 
-const MARK_COMMAND_KEY = {
-  strong: toggleStrongCommand.key,
-  emphasis: toggleEmphasisCommand.key,
-  inlineCode: toggleInlineCodeCommand.key,
+// NOTE: a $Command's `.key` is assigned lazily — only after the editor has run the
+// plugin — so it must be read at call time, NOT cached at module load (where it is
+// still undefined). Keep these as a getter map, not precomputed keys.
+const MARK_COMMAND = {
+  strong: toggleStrongCommand,
+  emphasis: toggleEmphasisCommand,
+  inlineCode: toggleInlineCodeCommand,
 } as const
 
 /**
@@ -31,7 +34,7 @@ const MARK_COMMAND_KEY = {
 export function applyAction(ctx: Ctx, action: PluginAction): void {
   switch (action.kind) {
     case 'toggleMark':
-      callCommand(MARK_COMMAND_KEY[action.mark])(ctx)
+      callCommand(MARK_COMMAND[action.mark].key)(ctx)
       return
     case 'setBlock':
       switch (action.block) {
