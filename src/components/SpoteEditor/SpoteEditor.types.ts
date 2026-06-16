@@ -1,4 +1,4 @@
-import type { Command } from './command-core/core.types'
+import type { SpotePlugin } from './command-core/plugin.types'
 
 export type EditorMode = 'wysiwyg' | 'raw'
 
@@ -14,7 +14,7 @@ export interface SpoteEditorProps {
   onModeChange?: (mode: EditorMode) => void
   onSearchNotes?: (query: string) => Promise<NoteHit[]>
   onResolveNoteHref?: (note: NoteHit) => string
-  commands?: Command[]
+  plugins?: SpotePlugin[]
   placeholder?: string
   readOnly?: boolean
   className?: string
