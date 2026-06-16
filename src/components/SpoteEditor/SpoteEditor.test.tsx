@@ -2,13 +2,15 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { SpoteEditor } from './SpoteEditor'
+import type { SpotePlugin } from './command-core/plugin.types'
 
-// Stub both engines so the shell test does not depend on CM/Milkdown internals.
+const captured: { plugins?: SpotePlugin[] } = {}
+type MockEditorProps = { value: string; plugins: SpotePlugin[] }
 vi.mock('./codemirror/CodeMirrorEditor', () => ({
-  CodeMirrorEditor: ({ value }: { value: string }) => <div data-testid="raw">{value}</div>,
+  CodeMirrorEditor: ({ value, plugins }: MockEditorProps) => { captured.plugins = plugins; return <div data-testid="raw">{value}</div> },
 }))
 vi.mock('./milkdown/MilkdownEditor', () => ({
-  MilkdownEditor: ({ value }: { value: string }) => <div data-testid="wysiwyg">{value}</div>,
+  MilkdownEditor: ({ value, plugins }: MockEditorProps) => { captured.plugins = plugins; return <div data-testid="wysiwyg">{value}</div> },
 }))
 
 describe('SpoteEditor shell', () => {
@@ -23,11 +25,17 @@ describe('SpoteEditor shell', () => {
     expect(screen.getByTestId('raw')).toBeInTheDocument()
   })
 
-  it('respects a controlled mode prop and calls onModeChange', async () => {
+  it('respects controlled mode and calls onModeChange', async () => {
     const onModeChange = vi.fn()
     render(<SpoteEditor value="x" onChange={vi.fn()} mode="raw" onModeChange={onModeChange} />)
     expect(screen.getByTestId('raw')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: /wysiwyg|formaterad/i }))
     expect(onModeChange).toHaveBeenCalledWith('wysiwyg')
+  })
+
+  it('passes a custom plugins list to the engine', () => {
+    const mine: SpotePlugin = { id: 'mine', label: 'Mine', icon: 'M', slash: () => ({ kind: 'insert', markdown: 'x' }) }
+    render(<SpoteEditor value="x" onChange={vi.fn()} plugins={[mine]} />)
+    expect(captured.plugins?.map((p) => p.id)).toEqual(['mine'])
   })
 })

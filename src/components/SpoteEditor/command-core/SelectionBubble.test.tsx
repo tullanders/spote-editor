@@ -2,22 +2,18 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { SelectionBubble } from './SelectionBubble'
+import { bubblePlugins } from './pluginMenu'
+import { DEFAULT_PLUGINS } from './plugins'
 
 describe('SelectionBubble', () => {
-  it('renders the four actions', () => {
-    render(<SelectionBubble position={{ x: 0, y: 0 }} onAction={vi.fn()} />)
+  it('renders one button per bubble plugin and emits id on click', async () => {
+    const onSelect = vi.fn()
+    render(<SelectionBubble plugins={bubblePlugins(DEFAULT_PLUGINS)} position={{ x: 0, y: 0 }} onSelect={onSelect} />)
     expect(screen.getByRole('button', { name: 'Fet' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Kursiv' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Kod' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Skapa länk' })).toBeInTheDocument()
-  })
-
-  it('emits the action on click', async () => {
-    const onAction = vi.fn()
-    render(<SelectionBubble position={{ x: 0, y: 0 }} onAction={onAction} />)
+    expect(screen.getByRole('button', { name: 'Länk' })).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Fet' }))
-    expect(onAction).toHaveBeenCalledWith('bold')
-    await userEvent.click(screen.getByRole('button', { name: 'Skapa länk' }))
-    expect(onAction).toHaveBeenCalledWith('link')
+    expect(onSelect).toHaveBeenCalledWith('bold')
   })
 })

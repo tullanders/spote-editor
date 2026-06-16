@@ -4,29 +4,30 @@ import { EditorView, keymap, placeholder as cmPlaceholder } from '@codemirror/vi
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { markdown } from '@codemirror/lang-markdown'
 import { wrapOnType } from './wrapOnType'
-import { applyCmCommand } from './cmCommands'
+import { applyAction } from './applyAction'
 import { slashExtension, removeSlashFragment } from './slashExtension'
 import { CommandMenu } from '../command-core/CommandMenu'
 import { SelectionBubble } from '../command-core/SelectionBubble'
 import { useCommandMenu } from '../command-core/useCommandMenu'
-import type { Command, BubbleAction } from '../command-core/core.types'
+import type { SpotePlugin, PluginUI } from '../command-core/plugin.types'
+import { slashPlugins, bubblePlugins, pluginById } from '../command-core/pluginMenu'
 import type { MenuPosition } from '../command-core/useCommandMenu'
 
 export interface CodeMirrorEditorProps {
   value: string
   onChange: (md: string) => void
-  commands: Command[]
+  plugins: SpotePlugin[]
   readOnly?: boolean
   autoFocus?: boolean
   placeholder?: string
-  onRequestLink: (position: MenuPosition, applyHref: (href: string) => void) => void
+  requestLink: (position: MenuPosition) => Promise<string | null>
 }
 
-export function CodeMirrorEditor({ value, onChange, commands, readOnly, autoFocus, placeholder, onRequestLink }: CodeMirrorEditorProps) {
+export function CodeMirrorEditor({ value, onChange, plugins, readOnly, autoFocus, placeholder, requestLink }: CodeMirrorEditorProps) {
   const hostRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
   const triggerPosRef = useRef<number>(0)
-  const menu = useCommandMenu(commands)
+  const menu = useCommandMenu(slashPlugins(plugins))
   const [bubble, setBubble] = useState<MenuPosition | null>(null)
 
   // Keep latest handlers in refs so the (once-built) extension can call them.
@@ -79,45 +80,42 @@ export function CodeMirrorEditor({ value, onChange, commands, readOnly, autoFocu
     }
   }, [value])
 
-  function runCommand(id: string) {
+  async function runCommand(id: string) {
     const view = viewRef.current
     if (!view) return
     removeSlashFragment(view, triggerPosRef.current)
-    if (id === 'link') {
-      const coords = view.coordsAtPos(view.state.selection.main.from)
-      onRequestLink({ x: coords?.left ?? 0, y: coords?.bottom ?? 0 }, (href) => {
-        const r = view.state.selection.main
-        const label = view.state.sliceDoc(r.from, r.to) || 'länk'
-        view.dispatch({ changes: { from: r.from, to: r.to, insert: `[${label}](${href})` } })
-      })
-    } else {
-      view.dispatch(applyCmCommand(view.state, id))
-    }
-    view.focus()
+    const plugin = pluginById(plugins, id)
     menu.close()
+    if (!plugin?.slash) { view.focus(); return }
+    const coords = view.coordsAtPos(view.state.selection.main.from)
+    const ui: PluginUI = { requestLink: () => requestLink({ x: coords?.left ?? 0, y: coords?.bottom ?? 0 }) }
+    const action = await plugin.slash({ ui })
+    if (action) view.dispatch(applyAction(view.state, action))
+    view.focus()
   }
 
-  function runBubble(action: BubbleAction) {
+  async function runBubble(id: string) {
     const view = viewRef.current
     if (!view) return
-    if (action === 'link') {
-      // Snapshot the selection as primitives now; the link popover is async, so
-      // re-read against the current doc length when applying to stay in range.
-      const { from, to } = view.state.selection.main
-      const coords = view.coordsAtPos(from)
-      onRequestLink({ x: coords?.left ?? 0, y: (coords?.top ?? 0) - 40 }, (href) => {
-        const docLen = view.state.doc.length
-        const safeFrom = Math.min(from, docLen)
-        const safeTo = Math.min(to, docLen)
-        const label = view.state.sliceDoc(safeFrom, safeTo) || 'länk'
-        view.dispatch({ changes: { from: safeFrom, to: safeTo, insert: `[${label}](${href})` } })
-      })
-    } else {
-      view.dispatch(applyCmCommand(view.state, action))
-    }
+    const { from, to } = view.state.selection.main
+    const selectedText = view.state.sliceDoc(from, to)
+    const coords = view.coordsAtPos(from)
     setBubble(null)
+    const plugin = pluginById(plugins, id)
+    if (!plugin?.bubble) { view.focus(); return }
+    const ui: PluginUI = { requestLink: () => requestLink({ x: coords?.left ?? 0, y: (coords?.top ?? 0) - 40 }) }
+    const action = await plugin.bubble({ selectedText, ui })
+    if (!action) { view.focus(); return }
+    // Re-assert the (clamped) snapshot selection so the action applies to the right range
+    const len = view.state.doc.length
+    const safeFrom = Math.min(from, len)
+    const safeTo = Math.min(to, len)
+    view.dispatch({ selection: { anchor: safeFrom, head: safeTo } })
+    view.dispatch(applyAction(view.state, action))
     view.focus()
   }
+
+  const bubble_plugins = bubblePlugins(plugins)
 
   return (
     <div className="spote-editor__cm" ref={hostRef}>
@@ -131,7 +129,7 @@ export function CodeMirrorEditor({ value, onChange, commands, readOnly, autoFocu
           onMove={menu.move}
         />
       )}
-      {bubble && <SelectionBubble position={bubble} onAction={runBubble} />}
+      {bubble && <SelectionBubble plugins={bubble_plugins} position={bubble} onSelect={runBubble} />}
     </div>
   )
 }

@@ -1,40 +1,34 @@
 import { useState, useCallback } from 'react'
 import type { SpoteEditorProps, EditorMode } from './SpoteEditor.types'
-import { DEFAULT_COMMANDS } from './command-core/commands'
+import { DEFAULT_PLUGINS } from './command-core/plugins'
 import { CodeMirrorEditor } from './codemirror/CodeMirrorEditor'
 import { MilkdownEditor } from './milkdown/MilkdownEditor'
 import { LinkPopover } from './command-core/LinkPopover'
 import type { MenuPosition } from './command-core/useCommandMenu'
-import type { Command } from './command-core/core.types'
+import type { SpotePlugin } from './command-core/plugin.types'
 
-interface LinkRequest {
-  position: MenuPosition
-  apply: (href: string) => void
-}
+const DEFAULTS: SpotePlugin[] = DEFAULT_PLUGINS
 
-// Stable default reference so we don't allocate a new array (and re-register the
-// menu's keydown listeners) on every render when no commands prop is passed.
-const DEFAULT_COMMAND_LIST: Command[] = [...DEFAULT_COMMANDS]
+interface PendingLink { position: MenuPosition; resolve: (href: string | null) => void }
 
 export function SpoteEditor(props: SpoteEditorProps) {
   const {
     value, onChange, mode: modeProp, onModeChange,
-    onSearchNotes, onResolveNoteHref, commands = DEFAULT_COMMAND_LIST,
+    onSearchNotes, onResolveNoteHref, plugins = DEFAULTS,
     readOnly, className, autoFocus, placeholder,
   } = props
 
   const [internalMode, setInternalMode] = useState<EditorMode>('wysiwyg')
   const mode = modeProp ?? internalMode
-  const [link, setLink] = useState<LinkRequest | null>(null)
+  const [pending, setPending] = useState<PendingLink | null>(null)
 
   const setMode = useCallback((next: EditorMode) => {
     if (modeProp == null) setInternalMode(next)
     onModeChange?.(next)
   }, [modeProp, onModeChange])
 
-  const onRequestLink = useCallback((position: MenuPosition, apply: (href: string) => void) => {
-    setLink({ position, apply })
-  }, [])
+  const requestLink = useCallback((position: MenuPosition) =>
+    new Promise<string | null>((resolve) => setPending({ position, resolve })), [])
 
   const Engine = mode === 'raw' ? CodeMirrorEditor : MilkdownEditor
 
@@ -52,19 +46,19 @@ export function SpoteEditor(props: SpoteEditorProps) {
       <Engine
         value={value}
         onChange={onChange}
-        commands={commands}
+        plugins={plugins}
         readOnly={readOnly}
         autoFocus={autoFocus}
         placeholder={placeholder}
-        onRequestLink={onRequestLink}
+        requestLink={requestLink}
       />
-      {link && (
+      {pending && (
         <LinkPopover
-          position={link.position}
+          position={pending.position}
           onSearchNotes={onSearchNotes}
           onResolveNoteHref={onResolveNoteHref}
-          onSubmitHref={(href) => { link.apply(href); setLink(null) }}
-          onCancel={() => setLink(null)}
+          onSubmitHref={(href) => { pending.resolve(href); setPending(null) }}
+          onCancel={() => { pending.resolve(null); setPending(null) }}
         />
       )}
     </div>

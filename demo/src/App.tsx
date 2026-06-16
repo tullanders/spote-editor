@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { SpoteEditor } from 'spote-editor'
-import type { NoteHit } from 'spote-editor'
+import { SpoteEditor, DEFAULT_PLUGINS } from 'spote-editor'
+import type { NoteHit, SpotePlugin } from 'spote-editor'
 import 'spote-editor/styles'
 
 const FAKE_NOTES: NoteHit[] = [
@@ -9,8 +9,14 @@ const FAKE_NOTES: NoteHit[] = [
   { id: 'n3', title: 'Idéer' },
 ]
 
+// Custom plugin: insert today's date (slash-only). Proves consumer extensibility.
+const insertDate: SpotePlugin = {
+  id: 'date', label: 'Datum', icon: '📅',
+  slash: () => ({ kind: 'insert', markdown: new Date().toISOString().slice(0, 10) }),
+}
+
 export default function App() {
-  const [md, setMd] = useState('# Hej\n\nMarkera ett ord och prova bubblan. Skriv `/` för menyn.')
+  const [md, setMd] = useState('# Hej\n\nMarkera ett ord och prova bubblan. Skriv `/` för menyn (inkl. "Datum").')
 
   return (
     <div style={{ maxWidth: 720, margin: '40px auto', fontFamily: 'system-ui' }}>
@@ -18,9 +24,8 @@ export default function App() {
       <SpoteEditor
         value={md}
         onChange={setMd}
-        onSearchNotes={async (q) =>
-          FAKE_NOTES.filter((n) => n.title.toLowerCase().includes(q.toLowerCase()))
-        }
+        plugins={[...DEFAULT_PLUGINS, insertDate]}
+        onSearchNotes={async (q) => FAKE_NOTES.filter((n) => n.title.toLowerCase().includes(q.toLowerCase()))}
         onResolveNoteHref={(n) => `spote://note/${n.id}`}
       />
       <h2>Rå markdown (källa)</h2>
