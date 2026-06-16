@@ -36,16 +36,16 @@ export default function App() {
 
 `SpoteEditor` ships with a default set of plugins (`DEFAULT_PLUGINS`) covering
 bold, italic, inline code, link, headings (H1–H3), bullet list, ordered list,
-blockquote, code block, divider, and a horizontal rule. You can replace or
+blockquote, code block, and divider (horizontal rule). You can replace or
 extend this set via the `plugins` prop.
 
 ### `SpotePlugin` shape
 
 ```ts
 interface SpotePlugin {
-  id: string        // unique key
-  label: string     // displayed in slash menu / bubble tooltip
-  icon: string      // emoji or short string shown in UI
+  id: string         // unique key
+  label: string      // displayed in slash menu / bubble tooltip
+  icon: ReactNode    // emoji, short string, or any React node shown in UI
 
   /** Called when the user selects this plugin from the bubble (text selected). */
   bubble?: (ctx: BubbleContext) => PluginAction | null | Promise<PluginAction | null>
