@@ -1,42 +1,42 @@
 import { useEffect, useRef, useState } from 'react'
 import { Editor, rootCtx, defaultValueCtx, editorViewCtx, editorViewOptionsCtx } from '@milkdown/core'
 import { Milkdown, MilkdownProvider, useEditor } from '@milkdown/react'
-import { commonmark, toggleLinkCommand } from '@milkdown/preset-commonmark'
+import { commonmark } from '@milkdown/preset-commonmark'
 import { gfm } from '@milkdown/preset-gfm'
 import { listener, listenerCtx } from '@milkdown/plugin-listener'
-import { $prose, callCommand, replaceAll } from '@milkdown/utils'
-import type { Ctx } from '@milkdown/ctx'
+import { $prose, replaceAll } from '@milkdown/utils'
 import { CommandMenu } from '../command-core/CommandMenu'
 import { SelectionBubble } from '../command-core/SelectionBubble'
 import { useCommandMenu } from '../command-core/useCommandMenu'
-import type { Command, BubbleAction } from '../command-core/core.types'
+import type { SpotePlugin, PluginUI } from '../command-core/plugin.types'
+import { slashPlugins, bubblePlugins, pluginById } from '../command-core/pluginMenu'
 import type { MenuPosition } from '../command-core/useCommandMenu'
-import { milkdownCommands, isMilkdownCommandId } from './milkdownCommands'
+import { applyAction } from './applyAction'
 import { createSlashPlugin } from './slashPlugin'
 
 export interface MilkdownEditorProps {
   value: string
   onChange: (md: string) => void
-  commands: Command[]
+  plugins: SpotePlugin[]
   readOnly?: boolean
   autoFocus?: boolean
   /** Accepted for prop parity with the raw editor; not yet applied in WYSIWYG (v1). */
   placeholder?: string
-  onRequestLink: (position: MenuPosition, applyHref: (href: string) => void) => void
+  requestLink: (position: MenuPosition) => Promise<string | null>
 }
 
 /**
  * Inner component: must live under a {@link MilkdownProvider} so `useEditor` and
  * the `<Milkdown />` mount point share editor context.
  */
-function MilkdownEditorInner({ value, onChange, commands, readOnly, autoFocus, onRequestLink }: MilkdownEditorProps) {
-  const menu = useCommandMenu(commands)
+function MilkdownEditorInner({ value, onChange, plugins, readOnly, autoFocus, requestLink }: MilkdownEditorProps) {
+  const menu = useCommandMenu(slashPlugins(plugins))
   const [bubble, setBubble] = useState<MenuPosition | null>(null)
 
   // The editor factory runs once; route through refs so it always sees latest.
   const menuRef = useRef(menu); menuRef.current = menu
   const onChangeRef = useRef(onChange); onChangeRef.current = onChange
-  const onRequestLinkRef = useRef(onRequestLink); onRequestLinkRef.current = onRequestLink
+  const requestLinkRef = useRef(requestLink); requestLinkRef.current = requestLink
   const readOnlyRef = useRef(readOnly); readOnlyRef.current = readOnly
   const triggerPosRef = useRef(0)
   // Last markdown we emitted, used to guard the controlled reconcile loop.
@@ -100,57 +100,50 @@ function MilkdownEditorInner({ value, onChange, commands, readOnly, autoFocus, o
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value])
 
-  /** Remove the `/query` fragment (if any), then run the editor mutation `fn`. */
-  function withSlashRemoved(fn: (ctx: Ctx) => void) {
+  async function runSlash(id: string) {
     const editor = get()
     if (!editor) return
-    editor.action((ctx) => {
+    // Remove the `/query` fragment left in the doc by the slash trigger.
+    const coords = editor.action((ctx) => {
       const view = ctx.get(editorViewCtx)
       const from = triggerPosRef.current
       const to = view.state.selection.from
       if (to > from) view.dispatch(view.state.tr.delete(from, to))
-      fn(ctx)
-      view.focus()
+      return view.coordsAtPos(view.state.selection.from)
     })
-  }
-
-  function runCommand(id: string) {
-    const editor = get()
-    if (!editor) return
-    if (id === 'link') {
-      const rect = editor.action((ctx) => {
-        const view = ctx.get(editorViewCtx)
-        const from = triggerPosRef.current
-        const to = view.state.selection.from
-        if (to > from) view.dispatch(view.state.tr.delete(from, to))
-        return view.coordsAtPos(view.state.selection.from)
-      })
-      onRequestLinkRef.current({ x: rect.left, y: rect.bottom }, (href) => {
-        editor.action(callCommand(toggleLinkCommand.key, { href }))
-        editor.action((ctx) => ctx.get(editorViewCtx).focus())
-      })
-    } else if (isMilkdownCommandId(id)) {
-      withSlashRemoved((ctx) => milkdownCommands[id](ctx))
-    }
     menu.close()
+    const plugin = pluginById(plugins, id)
+    if (!plugin?.slash) {
+      editor.action((ctx) => ctx.get(editorViewCtx).focus())
+      return
+    }
+    const ui: PluginUI = { requestLink: () => requestLinkRef.current({ x: coords.left, y: coords.bottom }) }
+    const action = await plugin.slash({ ui })
+    if (action) editor.action((ctx) => applyAction(ctx, action))
+    editor.action((ctx) => ctx.get(editorViewCtx).focus())
   }
 
-  function runBubble(action: BubbleAction) {
+  async function runBubble(id: string) {
     const editor = get()
     if (!editor) return
-    if (action === 'link') {
-      const rect = editor.action((ctx) => ctx.get(editorViewCtx).coordsAtPos(ctx.get(editorViewCtx).state.selection.from))
-      onRequestLinkRef.current({ x: rect.left, y: rect.top - 40 }, (href) => {
-        editor.action(callCommand(toggleLinkCommand.key, { href }))
-        editor.action((ctx) => ctx.get(editorViewCtx).focus())
-      })
-    } else if (isMilkdownCommandId(action)) {
-      editor.action((ctx) => {
-        milkdownCommands[action](ctx)
-        ctx.get(editorViewCtx).focus()
-      })
-    }
+    const { selectedText, coords } = editor.action((ctx) => {
+      const view = ctx.get(editorViewCtx)
+      const { from, to } = view.state.selection
+      return {
+        selectedText: view.state.doc.textBetween(from, to, ' '),
+        coords: view.coordsAtPos(from),
+      }
+    })
     setBubble(null)
+    const plugin = pluginById(plugins, id)
+    if (!plugin?.bubble) {
+      editor.action((ctx) => ctx.get(editorViewCtx).focus())
+      return
+    }
+    const ui: PluginUI = { requestLink: () => requestLinkRef.current({ x: coords.left, y: coords.top - 40 }) }
+    const action = await plugin.bubble({ selectedText, ui })
+    if (action) editor.action((ctx) => applyAction(ctx, action))
+    editor.action((ctx) => ctx.get(editorViewCtx).focus())
   }
 
   return (
@@ -161,12 +154,12 @@ function MilkdownEditorInner({ value, onChange, commands, readOnly, autoFocus, o
           results={menu.results}
           activeIndex={menu.activeIndex}
           position={menu.position}
-          onSelect={runCommand}
+          onSelect={runSlash}
           onClose={menu.close}
           onMove={menu.move}
         />
       )}
-      {bubble && <SelectionBubble position={bubble} onAction={runBubble} />}
+      {bubble && <SelectionBubble plugins={bubblePlugins(plugins)} position={bubble} onSelect={runBubble} />}
     </div>
   )
 }

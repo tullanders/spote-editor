@@ -5,11 +5,12 @@ import { SpoteEditor } from './SpoteEditor'
 import type { SpotePlugin } from './command-core/plugin.types'
 
 const captured: { plugins?: SpotePlugin[] } = {}
+type MockEditorProps = { value: string; plugins: SpotePlugin[] }
 vi.mock('./codemirror/CodeMirrorEditor', () => ({
-  CodeMirrorEditor: ({ value, plugins }: any) => { captured.plugins = plugins; return <div data-testid="raw">{value}</div> },
+  CodeMirrorEditor: ({ value, plugins }: MockEditorProps) => { captured.plugins = plugins; return <div data-testid="raw">{value}</div> },
 }))
 vi.mock('./milkdown/MilkdownEditor', () => ({
-  MilkdownEditor: ({ value, plugins }: any) => { captured.plugins = plugins; return <div data-testid="wysiwyg">{value}</div> },
+  MilkdownEditor: ({ value, plugins }: MockEditorProps) => { captured.plugins = plugins; return <div data-testid="wysiwyg">{value}</div> },
 }))
 
 describe('SpoteEditor shell', () => {
