@@ -2,6 +2,19 @@
 
 A React editor component published as an npm module.
 
+## Under the hood
+
+`SpoteEditor` is a dual-mode markdown editor:
+
+- **WYSIWYG** mode is powered by [Milkdown](https://milkdown.dev/) (ProseMirror + remark).
+- **Raw markdown** mode is powered by [CodeMirror 6](https://codemirror.net/).
+
+Both modes share the same markdown string as their single source of truth, so toggling
+between them preserves content. Because the package bundles two full editor engines, it is
+relatively large (~400 kB gzipped) — expected for what it does.
+
+Both Milkdown and CodeMirror are MIT-licensed.
+
 ## Installation
 
 ```bash
