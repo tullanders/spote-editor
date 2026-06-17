@@ -61,5 +61,7 @@ export function applyAction(ctx: Ctx, action: PluginAction): void {
     case 'insert':
       insert(action.markdown, false)(ctx)
       return
+    case 'uploadImage':
+      throw new Error('uploadImage is async; handled by the adapter, not applyAction')
   }
 }

@@ -30,4 +30,9 @@ describe('applyAction (CM)', () => {
   it('setBlock codeBlock fences the selection', () => {
     expect(run('x', 0, 1, { kind: 'setBlock', block: 'codeBlock' })).toContain('```')
   })
+  it('uploadImage is rejected — it is handled async by the adapter, not applyAction', () => {
+    const state = EditorState.create({ doc: 'x', selection: EditorSelection.single(0, 0) })
+    const file = new File(['data'], 'a.png', { type: 'image/png' })
+    expect(() => applyAction(state, { kind: 'uploadImage', file })).toThrow()
+  })
 })

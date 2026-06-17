@@ -7,7 +7,7 @@ describe('plugin.types', () => {
       id: 'x', label: 'X', icon: 'x',
       bubble: ({ selectedText }) => ({ kind: 'replaceSelection', markdown: `**${selectedText}**` }),
     }
-    const action = await p.bubble!({ selectedText: 'hi', ui: { requestLink: async () => null } })
+    const action = await p.bubble!({ selectedText: 'hi', ui: { requestLink: async () => null, pickImage: async () => null } })
     expect(action).toEqual({ kind: 'replaceSelection', markdown: '**hi**' })
   })
 

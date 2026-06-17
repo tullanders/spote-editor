@@ -58,5 +58,7 @@ export function applyAction(state: EditorState, action: PluginAction): Transacti
         return { changes: { from: r.from, to: r.to, insert: text }, selection: EditorSelection.cursor(r.from + 4) }
       }
       return linePrefix(state, BLOCK_PREFIX[action.block])
+    case 'uploadImage':
+      throw new Error('uploadImage is async; handled by the adapter, not applyAction')
   }
 }

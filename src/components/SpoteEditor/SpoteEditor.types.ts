@@ -14,6 +14,8 @@ export interface SpoteEditorProps {
   onModeChange?: (mode: EditorMode) => void
   onSearchNotes?: (query: string) => Promise<NoteHit[]>
   onResolveNoteHref?: (note: NoteHit) => string
+  /** Receives a picked/pasted/dropped image file; returns the URL to embed. Absent → image features off. */
+  onUpload?: (file: File) => Promise<string>
   plugins?: SpotePlugin[]
   placeholder?: string
   readOnly?: boolean
