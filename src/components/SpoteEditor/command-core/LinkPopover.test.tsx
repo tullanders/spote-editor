@@ -13,7 +13,7 @@ describe('LinkPopover', () => {
 
   it('searches notes for non-URL text and resolves a hit', async () => {
     const onSubmit = vi.fn()
-    const onSearchNotes = vi.fn().mockResolvedValue([{ id: 'n1', title: 'Projektplan' }])
+    const onSearchNotes = vi.fn().mockResolvedValue([{ id: 'n1', title: 'Project plan' }])
     const onResolveNoteHref = vi.fn().mockReturnValue('spote://n1')
     render(
       <LinkPopover
@@ -24,10 +24,10 @@ describe('LinkPopover', () => {
         onResolveNoteHref={onResolveNoteHref}
       />,
     )
-    await userEvent.type(screen.getByRole('textbox'), 'projekt')
-    await waitFor(() => expect(screen.getByText('Projektplan')).toBeInTheDocument())
-    await userEvent.click(screen.getByText('Projektplan'))
-    expect(onResolveNoteHref).toHaveBeenCalledWith({ id: 'n1', title: 'Projektplan' })
+    await userEvent.type(screen.getByRole('textbox'), 'project')
+    await waitFor(() => expect(screen.getByText('Project plan')).toBeInTheDocument())
+    await userEvent.click(screen.getByText('Project plan'))
+    expect(onResolveNoteHref).toHaveBeenCalledWith({ id: 'n1', title: 'Project plan' })
     expect(onSubmit).toHaveBeenCalledWith('spote://n1')
   })
 

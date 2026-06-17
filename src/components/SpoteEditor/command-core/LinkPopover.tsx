@@ -38,7 +38,7 @@ export function LinkPopover({ position, onSubmitHref, onCancel, onSearchNotes, o
         autoFocus
         type="text"
         className="spote-link-popover__input"
-        placeholder="Klistra URL eller sök not…"
+        placeholder="Paste URL or search notes…"
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => {

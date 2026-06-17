@@ -21,7 +21,7 @@ describe('useCommandMenu', () => {
   it('filters results by query', () => {
     const { result } = renderHook(() => useCommandMenu(DEFAULT_PLUGINS))
     act(() => result.current.openAt({ x: 0, y: 0 }))
-    act(() => result.current.setQuery('rubrik'))
+    act(() => result.current.setQuery('heading'))
     expect(result.current.results.map((c) => c.id)).toContain('h1')
   })
 

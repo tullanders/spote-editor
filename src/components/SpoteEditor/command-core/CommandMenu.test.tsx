@@ -20,8 +20,8 @@ function setup(overrides = {}) {
 describe('CommandMenu', () => {
   it('renders slash plugin labels', () => {
     setup()
-    expect(screen.getByText('Rubrik 1')).toBeInTheDocument()
-    expect(screen.getByText('Citat')).toBeInTheDocument()
+    expect(screen.getByText('Heading 1')).toBeInTheDocument()
+    expect(screen.getByText('Quote')).toBeInTheDocument()
   })
   it('Enter selects the active plugin id', async () => {
     const { onSelect } = setup({ activeIndex: 0 })
@@ -35,7 +35,7 @@ describe('CommandMenu', () => {
   })
   it('clicking an item selects its id', async () => {
     const { onSelect } = setup()
-    await userEvent.click(screen.getByText('Citat'))
+    await userEvent.click(screen.getByText('Quote'))
     expect(onSelect).toHaveBeenCalledWith('quote')
   })
 })
