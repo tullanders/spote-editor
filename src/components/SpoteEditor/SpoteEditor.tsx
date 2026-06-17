@@ -42,6 +42,8 @@ export function SpoteEditor(props: SpoteEditorProps) {
   const pickImage = useCallback(() => new Promise<File | null>((resolve) => {
     const input = fileInputRef.current
     if (!input) { resolve(null); return }
+    // Settle any outstanding pick before starting a new one (don't leak the prior promise).
+    pickResolveRef.current?.(null)
     pickResolveRef.current = resolve
     input.value = ''
     input.click()
