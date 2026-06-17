@@ -6,6 +6,8 @@ import { gfm } from '@milkdown/preset-gfm'
 import { listener, listenerCtx } from '@milkdown/plugin-listener'
 import { history } from '@milkdown/plugin-history'
 import { $prose, replaceAll } from '@milkdown/utils'
+import { TextSelection } from '@milkdown/prose/state'
+import type { EditorView as ProseView } from '@milkdown/prose/view'
 import { CommandMenu } from '../command-core/CommandMenu'
 import { SelectionBubble } from '../command-core/SelectionBubble'
 import { useCommandMenu } from '../command-core/useCommandMenu'
@@ -14,6 +16,41 @@ import { slashPlugins, bubblePlugins, pluginById } from '../command-core/pluginM
 import type { MenuPosition } from '../command-core/useCommandMenu'
 import { applyAction } from './applyAction'
 import { createSlashPlugin } from './slashPlugin'
+import { imageFilesFrom, nextUploadId, placeholderSrc } from '../command-core/imageUpload'
+
+function findImageBySrc(view: ProseView, src: string): { pos: number; nodeSize: number; attrs: Record<string, unknown> } | null {
+  let hit: { pos: number; nodeSize: number; attrs: Record<string, unknown> } | null = null
+  view.state.doc.descendants((node, pos) => {
+    if (hit) return false
+    if (node.type.name === 'image' && node.attrs.src === src) {
+      hit = { pos, nodeSize: node.nodeSize, attrs: node.attrs }
+      return false
+    }
+    return true
+  })
+  return hit
+}
+
+/**
+ * Two-phase image upload for Milkdown/ProseMirror: insert an image node with a
+ * temporary `uploading:<id>` src now, await the host upload, then point the node
+ * at the real URL (and clear the placeholder alt) — or delete the node on failure.
+ */
+async function mdUploadAndInsert(view: ProseView, file: File, onUpload: (file: File) => Promise<string>) {
+  const imageType = view.state.schema.nodes.image
+  if (!imageType) return
+  const id = nextUploadId()
+  const src = placeholderSrc(id)
+  view.dispatch(view.state.tr.replaceSelectionWith(imageType.create({ src, alt: 'laddar…' })))
+  try {
+    const url = await onUpload(file)
+    const hit = findImageBySrc(view, src)
+    if (hit) view.dispatch(view.state.tr.setNodeMarkup(hit.pos, undefined, { ...hit.attrs, src: url, alt: '' }))
+  } catch {
+    const hit = findImageBySrc(view, src)
+    if (hit) view.dispatch(view.state.tr.delete(hit.pos, hit.pos + hit.nodeSize))
+  }
+}
 
 export interface MilkdownEditorProps {
   value: string
@@ -24,13 +61,15 @@ export interface MilkdownEditorProps {
   /** Accepted for prop parity with the raw editor; not yet applied in WYSIWYG (v1). */
   placeholder?: string
   requestLink: (position: MenuPosition) => Promise<string | null>
+  onUpload?: (file: File) => Promise<string>
+  pickImage: () => Promise<File | null>
 }
 
 /**
  * Inner component: must live under a {@link MilkdownProvider} so `useEditor` and
  * the `<Milkdown />` mount point share editor context.
  */
-function MilkdownEditorInner({ value, onChange, plugins, readOnly, autoFocus, requestLink }: MilkdownEditorProps) {
+function MilkdownEditorInner({ value, onChange, plugins, readOnly, autoFocus, requestLink, onUpload, pickImage }: MilkdownEditorProps) {
   const menu = useCommandMenu(slashPlugins(plugins))
   const [bubble, setBubble] = useState<MenuPosition | null>(null)
 
@@ -39,6 +78,8 @@ function MilkdownEditorInner({ value, onChange, plugins, readOnly, autoFocus, re
   const onChangeRef = useRef(onChange); onChangeRef.current = onChange
   const requestLinkRef = useRef(requestLink); requestLinkRef.current = requestLink
   const readOnlyRef = useRef(readOnly); readOnlyRef.current = readOnly
+  const onUploadRef = useRef(onUpload); onUploadRef.current = onUpload
+  const pickImageRef = useRef(pickImage); pickImageRef.current = pickImage
   const triggerPosRef = useRef(0)
   // Last markdown we emitted, used to guard the controlled reconcile loop.
   const lastMarkdownRef = useRef(value)
@@ -51,6 +92,25 @@ function MilkdownEditorInner({ value, onChange, plugins, readOnly, autoFocus, re
         ctx.update(editorViewOptionsCtx, (prev) => ({
           ...prev,
           editable: () => !readOnlyRef.current,
+          handlePaste: (view, event) => {
+            const onUpload = onUploadRef.current
+            if (!onUpload) return false
+            const files = imageFilesFrom((event as ClipboardEvent).clipboardData?.files)
+            if (files.length === 0) return false
+            files.forEach((f) => { void mdUploadAndInsert(view, f, onUpload) })
+            return true
+          },
+          handleDrop: (view, event) => {
+            const onUpload = onUploadRef.current
+            if (!onUpload) return false
+            const e = event as DragEvent
+            const files = imageFilesFrom(e.dataTransfer?.files)
+            if (files.length === 0) return false
+            const at = view.posAtCoords({ left: e.clientX, top: e.clientY })
+            if (at) view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, at.pos)))
+            files.forEach((f) => { void mdUploadAndInsert(view, f, onUpload) })
+            return true
+          },
         }))
         const l = ctx.get(listenerCtx)
         l.markdownUpdated((_c, markdown) => {
@@ -119,8 +179,17 @@ function MilkdownEditorInner({ value, onChange, plugins, readOnly, autoFocus, re
       editor.action((ctx) => ctx.get(editorViewCtx).focus())
       return
     }
-    const ui: PluginUI = { requestLink: () => requestLinkRef.current({ x: coords.left, y: coords.bottom }) }
+    const ui: PluginUI = {
+      requestLink: () => requestLinkRef.current({ x: coords.left, y: coords.bottom }),
+      pickImage: () => pickImageRef.current(),
+    }
     const action = await plugin.slash({ ui })
+    if (action?.kind === 'uploadImage') {
+      const onUpload = onUploadRef.current
+      if (onUpload) editor.action((ctx) => mdUploadAndInsert(ctx.get(editorViewCtx), action.file, onUpload))
+      editor.action((ctx) => ctx.get(editorViewCtx).focus())
+      return
+    }
     if (action) editor.action((ctx) => applyAction(ctx, action))
     editor.action((ctx) => ctx.get(editorViewCtx).focus())
   }
@@ -142,7 +211,10 @@ function MilkdownEditorInner({ value, onChange, plugins, readOnly, autoFocus, re
       editor.action((ctx) => ctx.get(editorViewCtx).focus())
       return
     }
-    const ui: PluginUI = { requestLink: () => requestLinkRef.current({ x: coords.left, y: coords.top - 40 }) }
+    const ui: PluginUI = {
+      requestLink: () => requestLinkRef.current({ x: coords.left, y: coords.top - 40 }),
+      pickImage: () => pickImageRef.current(),
+    }
     const action = await plugin.bubble({ selectedText, ui })
     if (action) editor.action((ctx) => applyAction(ctx, action))
     editor.action((ctx) => ctx.get(editorViewCtx).focus())

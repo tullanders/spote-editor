@@ -84,13 +84,16 @@ export function SpoteEditor(props: SpoteEditorProps) {
           onCancel={() => { pending.resolve(null); setPending(null) }}
         />
       )}
+      {/* onCancel fires when the OS file-picker dialog is dismissed without a selection.
+          It is valid HTML5 but not yet in React's type definitions; we cast to silence TS. */}
       <input
         ref={fileInputRef}
         type="file"
         accept="image/*"
         style={{ display: 'none' }}
         onChange={(e) => settlePick(e.target.files?.[0] ?? null)}
-        onCancel={() => settlePick(null)}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        {...({ onCancel: () => settlePick(null) } as any)}
       />
     </div>
   )
