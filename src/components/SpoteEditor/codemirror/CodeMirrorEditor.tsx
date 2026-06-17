@@ -4,6 +4,7 @@ import { EditorView, keymap, placeholder as cmPlaceholder } from '@codemirror/vi
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { markdown } from '@codemirror/lang-markdown'
 import { wrapOnType } from './wrapOnType'
+import { markKeymap } from './markKeymap'
 import { applyAction } from './applyAction'
 import { slashExtension, removeSlashFragment } from './slashExtension'
 import { CommandMenu } from '../command-core/CommandMenu'
@@ -39,6 +40,7 @@ export function CodeMirrorEditor({ value, onChange, plugins, readOnly, autoFocus
       doc: value,
       extensions: [
         history(),
+        markKeymap,
         keymap.of([...defaultKeymap, ...historyKeymap]),
         markdown(),
         ...(placeholder ? [cmPlaceholder(placeholder)] : []),
