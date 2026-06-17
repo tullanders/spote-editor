@@ -10,3 +10,7 @@ export function filterByQuery(plugins: readonly SpotePlugin[], query: string): S
   if (!q) return [...plugins]
   return plugins.filter((p) => p.label.toLowerCase().includes(q))
 }
+
+/** Drop the image plugin when the host provides no upload handler (image features off). */
+export const withImageGate = (plugins: readonly SpotePlugin[], hasUpload: boolean): SpotePlugin[] =>
+  hasUpload ? [...plugins] : plugins.filter((p) => p.id !== 'image')
