@@ -4,6 +4,7 @@ import { Milkdown, MilkdownProvider, useEditor } from '@milkdown/react'
 import { commonmark } from '@milkdown/preset-commonmark'
 import { gfm } from '@milkdown/preset-gfm'
 import { listener, listenerCtx } from '@milkdown/plugin-listener'
+import { history } from '@milkdown/plugin-history'
 import { $prose, replaceAll } from '@milkdown/utils'
 import { CommandMenu } from '../command-core/CommandMenu'
 import { SelectionBubble } from '../command-core/SelectionBubble'
@@ -66,6 +67,7 @@ function MilkdownEditorInner({ value, onChange, plugins, readOnly, autoFocus, re
       .use(commonmark)
       .use(gfm)
       .use(listener)
+      .use(history)
       .use(
         $prose(() =>
           createSlashPlugin({
