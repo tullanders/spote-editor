@@ -4,13 +4,13 @@ import userEvent from '@testing-library/user-event'
 import { SpoteEditor } from './SpoteEditor'
 import type { SpotePlugin } from './command-core/plugin.types'
 
-const captured: { plugins?: SpotePlugin[] } = {}
-type MockEditorProps = { value: string; plugins: SpotePlugin[] }
+const captured: { plugins?: SpotePlugin[]; onUpload?: unknown } = {}
+type MockEditorProps = { value: string; plugins: SpotePlugin[]; onUpload?: unknown }
 vi.mock('./codemirror/CodeMirrorEditor', () => ({
-  CodeMirrorEditor: ({ value, plugins }: MockEditorProps) => { captured.plugins = plugins; return <div data-testid="raw">{value}</div> },
+  CodeMirrorEditor: ({ value, plugins, onUpload }: MockEditorProps) => { captured.plugins = plugins; captured.onUpload = onUpload; return <div data-testid="raw">{value}</div> },
 }))
 vi.mock('./milkdown/MilkdownEditor', () => ({
-  MilkdownEditor: ({ value, plugins }: MockEditorProps) => { captured.plugins = plugins; return <div data-testid="wysiwyg">{value}</div> },
+  MilkdownEditor: ({ value, plugins, onUpload }: MockEditorProps) => { captured.plugins = plugins; captured.onUpload = onUpload; return <div data-testid="wysiwyg">{value}</div> },
 }))
 
 describe('SpoteEditor shell', () => {
@@ -37,5 +37,17 @@ describe('SpoteEditor shell', () => {
     const mine: SpotePlugin = { id: 'mine', label: 'Mine', icon: 'M', slash: () => ({ kind: 'insert', markdown: 'x' }) }
     render(<SpoteEditor value="x" onChange={vi.fn()} plugins={[mine]} />)
     expect(captured.plugins?.map((p) => p.id)).toEqual(['mine'])
+  })
+
+  it('hides the image plugin when no onUpload is given', () => {
+    render(<SpoteEditor value="x" onChange={vi.fn()} />)
+    expect(captured.plugins!.some((p) => p.id === 'image')).toBe(false)
+  })
+
+  it('keeps the image plugin and forwards onUpload when provided', () => {
+    const onUpload = vi.fn(async () => 'https://x/y.png')
+    render(<SpoteEditor value="x" onChange={vi.fn()} onUpload={onUpload} />)
+    expect(captured.plugins!.some((p) => p.id === 'image')).toBe(true)
+    expect(captured.onUpload).toBe(onUpload)
   })
 })
