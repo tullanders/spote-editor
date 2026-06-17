@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { EditorState } from '@codemirror/state'
+import { EditorState, EditorSelection } from '@codemirror/state'
 import { EditorView, keymap, placeholder as cmPlaceholder } from '@codemirror/view'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { markdown } from '@codemirror/lang-markdown'
@@ -11,8 +11,30 @@ import { CommandMenu } from '../command-core/CommandMenu'
 import { SelectionBubble } from '../command-core/SelectionBubble'
 import { useCommandMenu } from '../command-core/useCommandMenu'
 import type { SpotePlugin, PluginUI } from '../command-core/plugin.types'
+import { imageFilesFrom, nextUploadId, placeholderMarkdown, imageMarkdown, findPlaceholderRange } from '../command-core/imageUpload'
 import { slashPlugins, bubblePlugins, pluginById } from '../command-core/pluginMenu'
 import type { MenuPosition } from '../command-core/useCommandMenu'
+
+/**
+ * Two-phase image upload for CodeMirror: insert a raw-markdown placeholder at the
+ * cursor now, await the host upload, then swap the placeholder for `![](url)` —
+ * or remove it on failure. Located by unique placeholder text so concurrent
+ * uploads and unrelated edits don't collide.
+ */
+async function cmUploadAndInsert(view: EditorView, file: File, onUpload: (file: File) => Promise<string>) {
+  const id = nextUploadId()
+  const ph = placeholderMarkdown(id)
+  const r = view.state.selection.main
+  view.dispatch({ changes: { from: r.from, to: r.to, insert: ph }, selection: EditorSelection.cursor(r.from + ph.length) })
+  try {
+    const url = await onUpload(file)
+    const range = findPlaceholderRange(view.state.doc.toString(), id)
+    if (range) view.dispatch({ changes: { from: range.from, to: range.to, insert: imageMarkdown(url) } })
+  } catch {
+    const range = findPlaceholderRange(view.state.doc.toString(), id)
+    if (range) view.dispatch({ changes: { from: range.from, to: range.to, insert: '' } })
+  }
+}
 
 export interface CodeMirrorEditorProps {
   value: string
@@ -22,12 +44,15 @@ export interface CodeMirrorEditorProps {
   autoFocus?: boolean
   placeholder?: string
   requestLink: (position: MenuPosition) => Promise<string | null>
+  onUpload?: (file: File) => Promise<string>
+  pickImage: () => Promise<File | null>
 }
 
-export function CodeMirrorEditor({ value, onChange, plugins, readOnly, autoFocus, placeholder, requestLink }: CodeMirrorEditorProps) {
+export function CodeMirrorEditor({ value, onChange, plugins, readOnly, autoFocus, placeholder, requestLink, onUpload, pickImage }: CodeMirrorEditorProps) {
   const hostRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
   const triggerPosRef = useRef<number>(0)
+  const onUploadRef = useRef(onUpload); onUploadRef.current = onUpload
   const menu = useCommandMenu(slashPlugins(plugins))
   const [bubble, setBubble] = useState<MenuPosition | null>(null)
 
@@ -62,6 +87,28 @@ export function CodeMirrorEditor({ value, onChange, plugins, readOnly, autoFocus
             }
           }
         }),
+        EditorView.domEventHandlers({
+          paste(event, view) {
+            const onUpload = onUploadRef.current
+            if (!onUpload) return false
+            const files = imageFilesFrom(event.clipboardData?.files)
+            if (files.length === 0) return false
+            event.preventDefault()
+            files.forEach((f) => { void cmUploadAndInsert(view, f, onUpload) })
+            return true
+          },
+          drop(event, view) {
+            const onUpload = onUploadRef.current
+            if (!onUpload) return false
+            const files = imageFilesFrom(event.dataTransfer?.files)
+            if (files.length === 0) return false
+            event.preventDefault()
+            const pos = view.posAtCoords({ x: event.clientX, y: event.clientY })
+            if (pos != null) view.dispatch({ selection: EditorSelection.cursor(pos) })
+            files.forEach((f) => { void cmUploadAndInsert(view, f, onUpload) })
+            return true
+          },
+        }),
         EditorView.editable.of(!readOnly),
       ],
     })
@@ -90,8 +137,16 @@ export function CodeMirrorEditor({ value, onChange, plugins, readOnly, autoFocus
     menu.close()
     if (!plugin?.slash) { view.focus(); return }
     const coords = view.coordsAtPos(view.state.selection.main.from)
-    const ui: PluginUI = { requestLink: () => requestLink({ x: coords?.left ?? 0, y: coords?.bottom ?? 0 }) }
+    const ui: PluginUI = {
+      requestLink: () => requestLink({ x: coords?.left ?? 0, y: coords?.bottom ?? 0 }),
+      pickImage,
+    }
     const action = await plugin.slash({ ui })
+    if (action?.kind === 'uploadImage') {
+      if (onUploadRef.current) await cmUploadAndInsert(view, action.file, onUploadRef.current)
+      view.focus()
+      return
+    }
     if (action) view.dispatch(applyAction(view.state, action))
     view.focus()
   }
@@ -105,7 +160,10 @@ export function CodeMirrorEditor({ value, onChange, plugins, readOnly, autoFocus
     setBubble(null)
     const plugin = pluginById(plugins, id)
     if (!plugin?.bubble) { view.focus(); return }
-    const ui: PluginUI = { requestLink: () => requestLink({ x: coords?.left ?? 0, y: (coords?.top ?? 0) - 40 }) }
+    const ui: PluginUI = {
+      requestLink: () => requestLink({ x: coords?.left ?? 0, y: (coords?.top ?? 0) - 40 }),
+      pickImage,
+    }
     const action = await plugin.bubble({ selectedText, ui })
     if (!action) { view.focus(); return }
     // Re-assert the (clamped) snapshot selection so the action applies to the right range
