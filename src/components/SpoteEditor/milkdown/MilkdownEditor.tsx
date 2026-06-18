@@ -37,6 +37,9 @@ function findImageBySrc(view: ProseView, src: string): { pos: number; nodeSize: 
  * at the real URL (and clear the placeholder alt) — or delete the node on failure.
  */
 async function mdUploadAndInsert(view: ProseView, file: File, onUpload: (file: File) => Promise<string>) {
+  // Known limitation (v1): if the user switches editor mode mid-upload, the engine
+  // unmounts and this resolve no-ops, leaving the placeholder behind. Acceptable per
+  // the spec's silent-failure posture.
   const imageType = view.state.schema.nodes.image
   if (!imageType) return
   const id = nextUploadId()

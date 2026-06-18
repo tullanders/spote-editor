@@ -22,6 +22,9 @@ import type { MenuPosition } from '../command-core/useCommandMenu'
  * uploads and unrelated edits don't collide.
  */
 async function cmUploadAndInsert(view: EditorView, file: File, onUpload: (file: File) => Promise<string>) {
+  // Known limitation (v1): if the user switches editor mode mid-upload, the engine
+  // unmounts and this resolve no-ops, leaving the placeholder behind. Acceptable per
+  // the spec's silent-failure posture.
   const id = nextUploadId()
   const ph = placeholderMarkdown(id)
   const r = view.state.selection.main
@@ -143,7 +146,7 @@ export function CodeMirrorEditor({ value, onChange, plugins, readOnly, autoFocus
     }
     const action = await plugin.slash({ ui })
     if (action?.kind === 'uploadImage') {
-      if (onUploadRef.current) await cmUploadAndInsert(view, action.file, onUploadRef.current)
+      if (onUploadRef.current) void cmUploadAndInsert(view, action.file, onUploadRef.current)
       view.focus()
       return
     }

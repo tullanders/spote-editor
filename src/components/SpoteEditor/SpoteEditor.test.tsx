@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { SpoteEditor } from './SpoteEditor'
@@ -14,6 +14,8 @@ vi.mock('./milkdown/MilkdownEditor', () => ({
 }))
 
 describe('SpoteEditor shell', () => {
+  beforeEach(() => { captured.plugins = undefined; captured.onUpload = undefined })
+
   it('renders WYSIWYG by default and shows the value', () => {
     render(<SpoteEditor value="# hi" onChange={vi.fn()} />)
     expect(screen.getByTestId('wysiwyg')).toHaveTextContent('# hi')
