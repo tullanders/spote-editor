@@ -1,6 +1,7 @@
 # spote-editor
 
 A React editor component published as an npm module.
+Built for [Spote](https://spote.cloud) — markdown notes with MCP support — but usable standalone in any React app.
 
 ## Under the hood
 
@@ -143,6 +144,16 @@ Tag a commit with a version to trigger the GitHub Actions publish workflow:
 ```bash
 git tag v0.1.0 && git push --tags
 ```
+
+## About Spote
+
+[Spote](https://spote.cloud) is a markdown notes system with first-class
+[MCP](https://modelcontextprotocol.io/) support, so AI agents can read, write, search,
+and relate your notes directly. `spote-editor` is the editing surface behind it — the
+same dual-mode (WYSIWYG / raw markdown) component, extracted as a standalone npm package.
+
+You don't need a Spote account to use the editor; it works in any React app. But if you
+want notes that your tools and agents can actually reach, that's what Spote is for.
 
 ## License
 
