@@ -1,6 +1,7 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import type { SpoteEditorProps, EditorMode } from './SpoteEditor.types'
 import { DEFAULT_PLUGINS } from './command-core/plugins'
+import { withImageGate } from './command-core/pluginMenu'
 import { CodeMirrorEditor } from './codemirror/CodeMirrorEditor'
 import { MilkdownEditor } from './milkdown/MilkdownEditor'
 import { LinkPopover } from './command-core/LinkPopover'
@@ -15,7 +16,7 @@ export function SpoteEditor(props: SpoteEditorProps) {
   const {
     value, onChange, mode: modeProp, onModeChange,
     onSearchNotes, onResolveNoteHref, plugins = DEFAULTS,
-    readOnly, className, autoFocus, placeholder,
+    readOnly, className, autoFocus, placeholder, onUpload,
   } = props
 
   const [internalMode, setInternalMode] = useState<EditorMode>('wysiwyg')
@@ -29,6 +30,26 @@ export function SpoteEditor(props: SpoteEditorProps) {
 
   const requestLink = useCallback((position: MenuPosition) =>
     new Promise<string | null>((resolve) => setPending({ position, resolve })), [])
+
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const pickResolveRef = useRef<((file: File | null) => void) | null>(null)
+
+  const settlePick = useCallback((file: File | null) => {
+    pickResolveRef.current?.(file)
+    pickResolveRef.current = null
+  }, [])
+
+  const pickImage = useCallback(() => new Promise<File | null>((resolve) => {
+    const input = fileInputRef.current
+    if (!input) { resolve(null); return }
+    // Settle any outstanding pick before starting a new one (don't leak the prior promise).
+    pickResolveRef.current?.(null)
+    pickResolveRef.current = resolve
+    input.value = ''
+    input.click()
+  }), [])
+
+  const gatedPlugins = withImageGate(plugins, !!onUpload)
 
   const Engine = mode === 'raw' ? CodeMirrorEditor : MilkdownEditor
 
@@ -46,11 +67,13 @@ export function SpoteEditor(props: SpoteEditorProps) {
       <Engine
         value={value}
         onChange={onChange}
-        plugins={plugins}
+        plugins={gatedPlugins}
         readOnly={readOnly}
         autoFocus={autoFocus}
         placeholder={placeholder}
         requestLink={requestLink}
+        onUpload={onUpload}
+        pickImage={pickImage}
       />
       {pending && (
         <LinkPopover
@@ -61,6 +84,17 @@ export function SpoteEditor(props: SpoteEditorProps) {
           onCancel={() => { pending.resolve(null); setPending(null) }}
         />
       )}
+      {/* onCancel fires when the OS file-picker dialog is dismissed without a selection.
+          It is valid HTML5 but not yet in React's type definitions; we cast to silence TS. */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={(e) => settlePick(e.target.files?.[0] ?? null)}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        {...({ onCancel: () => settlePick(null) } as any)}
+      />
     </div>
   )
 }

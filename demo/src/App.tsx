@@ -9,6 +9,17 @@ const FAKE_NOTES: NoteHit[] = [
   { id: 'n3', title: 'Ideas' },
 ]
 
+// Dummy onUpload: bakes the image into an inline data-URL (base64). No real
+// storage — the image lives in the markdown text itself, so it survives reload.
+function fakeUpload(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(file)
+  })
+}
+
 // Custom plugin: insert today's date (slash-only). Proves consumer extensibility.
 const insertDate: SpotePlugin = {
   id: 'date', label: 'Date', icon: '📅',
@@ -27,6 +38,7 @@ export default function App() {
         plugins={[...DEFAULT_PLUGINS, insertDate]}
         onSearchNotes={async (q) => FAKE_NOTES.filter((n) => n.title.toLowerCase().includes(q.toLowerCase()))}
         onResolveNoteHref={(n) => `spote://note/${n.id}`}
+        onUpload={fakeUpload}
       />
       <h2>Raw markdown (source)</h2>
       <pre style={{ background: '#f4f5f7', padding: 12, borderRadius: 8, whiteSpace: 'pre-wrap' }}>{md}</pre>
