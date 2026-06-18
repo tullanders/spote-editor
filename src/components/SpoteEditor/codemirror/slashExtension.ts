@@ -31,8 +31,14 @@ export function slashExtension(cb: SlashCallbacks) {
             const textBefore = u.state.sliceDoc(line.from, pos - 1)
             if (shouldTriggerSlash('/', textBefore)) {
               triggerPos = pos - 1
-              const coords = u.view.coordsAtPos(pos)
-              if (coords) cb.onOpen({ x: coords.left, y: coords.bottom }, triggerPos)
+              const at = triggerPos
+              // Defer the layout read: CM6 forbids reading coords (readMeasured)
+              // synchronously inside an update() cycle. The `read` phase is the
+              // only place layout reads are allowed; `write` runs the callback.
+              u.view.requestMeasure({
+                read: (view) => view.coordsAtPos(pos),
+                write: (coords) => { if (coords) cb.onOpen({ x: coords.left, y: coords.bottom }, at) },
+              })
             }
           })
         }

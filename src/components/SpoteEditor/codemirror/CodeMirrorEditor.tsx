@@ -83,8 +83,13 @@ export function CodeMirrorEditor({ value, onChange, plugins, readOnly, autoFocus
           if (u.selectionSet) {
             const sel = u.state.selection.main
             if (!sel.empty) {
-              const coords = u.view.coordsAtPos(sel.from)
-              if (coords) setBubble({ x: coords.left, y: coords.top - 40 })
+              const from = sel.from
+              // Defer the layout read: CM6 forbids reading coords synchronously
+              // inside an update cycle. Read in the measure phase, set state after.
+              u.view.requestMeasure({
+                read: (view) => view.coordsAtPos(from),
+                write: (coords) => { if (coords) setBubble({ x: coords.left, y: coords.top - 40 }) },
+              })
             } else {
               setBubble(null)
             }
