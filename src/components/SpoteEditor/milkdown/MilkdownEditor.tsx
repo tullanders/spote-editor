@@ -17,6 +17,7 @@ import type { MenuPosition } from '../command-core/useCommandMenu'
 import { applyAction } from './applyAction'
 import { createSlashPlugin } from './slashPlugin'
 import { createTaskCheckboxPlugin } from './taskCheckboxPlugin'
+import { createMermaidPlugin } from './mermaidPlugin'
 import { imageFilesFrom, nextUploadId, placeholderSrc } from '../command-core/imageUpload'
 
 function findImageBySrc(view: ProseView, src: string): { pos: number; nodeSize: number; attrs: Record<string, unknown> } | null {
@@ -144,7 +145,8 @@ function MilkdownEditorInner({ value, onChange, plugins, readOnly, autoFocus, re
           }),
         ),
       )
-      .use($prose(() => createTaskCheckboxPlugin())),
+      .use($prose(() => createTaskCheckboxPlugin()))
+      .use($prose(() => createMermaidPlugin({ initialTheme: 'light', onZoom: () => {} }))),
   )
 
   // Focus once the editor has finished creating (autoFocus at setup only).

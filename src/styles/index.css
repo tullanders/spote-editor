@@ -127,3 +127,26 @@
   font-size: 13px;
 }
 .spote-link-popover__hits button:hover { background: rgba(59, 109, 240, 0.12); }
+
+/* Mermaid diagrams. Which half is visible is driven by `data-state`, set from the
+   selection by the mermaid plugin — see mermaidPlugin.ts. */
+.spote-mermaid {
+  border: 1px solid var(--spote-border);
+  border-radius: var(--spote-radius);
+  margin: 12px 0;
+  overflow: hidden;
+}
+.spote-mermaid__preview {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+}
+.spote-mermaid__figure svg { max-width: 100%; height: auto; }
+.spote-mermaid__figure.is-error {
+  color: #b00020;
+  font-family: var(--spote-mono);
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+.spote-mermaid > pre { margin: 0; border: none; border-radius: 0; }
