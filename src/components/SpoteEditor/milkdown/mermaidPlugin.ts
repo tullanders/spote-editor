@@ -3,7 +3,18 @@ import { Decoration, DecorationSet } from '@milkdown/prose/view'
 import { CodeBlockNodeView, isMermaidBlock } from './mermaidNodeView'
 import type { MermaidTheme } from './mermaidRenderer'
 
-export const mermaidPluginKey = new PluginKey<{ theme: MermaidTheme }>('spote-mermaid')
+interface MermaidPluginState {
+  theme: MermaidTheme
+  // Latches true the first time a transaction actually sets the selection
+  // (`tr.selectionSet`) and never goes back to false. ProseMirror's own default
+  // selection (`Selection.atStart(doc)`) is not the product of any transaction, so
+  // this is what tells a real user action — a click, an arrow key, a keystroke —
+  // apart from that placeholder, or from `view.focus()` alone (which dispatches no
+  // transaction and so cannot set this). See `mermaidNodeView.ts`'s `sync()`.
+  selectionMoved: boolean
+}
+
+export const mermaidPluginKey = new PluginKey<MermaidPluginState>('spote-mermaid')
 
 /** Transaction meta key used to push a new theme into the plugin's state. */
 export const SET_MERMAID_THEME = 'spote-mermaid-set-theme'
@@ -19,17 +30,20 @@ export interface MermaidPluginOptions {
  * The theme lives in plugin state rather than a closure so a theme change is an
  * ordinary transaction — see Task 5 / `MilkdownEditor`.
  */
-export function createMermaidPlugin(options: MermaidPluginOptions): Plugin<{ theme: MermaidTheme }> {
+export function createMermaidPlugin(options: MermaidPluginOptions): Plugin<MermaidPluginState> {
   let currentTheme = options.initialTheme
-  return new Plugin<{ theme: MermaidTheme }>({
+  let currentSelectionMoved = false
+  return new Plugin<MermaidPluginState>({
     key: mermaidPluginKey,
     state: {
-      init: () => ({ theme: options.initialTheme }),
+      init: () => ({ theme: options.initialTheme, selectionMoved: false }),
       apply: (tr, value) => {
-        const next = tr.getMeta(SET_MERMAID_THEME) as MermaidTheme | undefined
-        if (!next) return value
-        currentTheme = next
-        return { theme: next }
+        const nextTheme = (tr.getMeta(SET_MERMAID_THEME) as MermaidTheme | undefined) ?? value.theme
+        if (nextTheme !== value.theme) currentTheme = nextTheme
+        const selectionMoved = value.selectionMoved || tr.selectionSet
+        if (selectionMoved) currentSelectionMoved = true
+        if (nextTheme === value.theme && selectionMoved === value.selectionMoved) return value
+        return { theme: nextTheme, selectionMoved }
       },
     },
     props: {
@@ -37,6 +51,7 @@ export function createMermaidPlugin(options: MermaidPluginOptions): Plugin<{ the
         code_block: (node, view, getPos) =>
           new CodeBlockNodeView(node, view, getPos, {
             getTheme: () => currentTheme,
+            getSelectionMoved: () => currentSelectionMoved,
             onZoom: options.onZoom,
           }),
       },

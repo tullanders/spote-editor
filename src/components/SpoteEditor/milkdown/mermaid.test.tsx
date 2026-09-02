@@ -1,7 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { TextSelection } from '@milkdown/prose/state'
+import type { EditorView } from '@milkdown/prose/view'
 import { MilkdownEditor } from './MilkdownEditor'
+import { isMermaidBlock } from './mermaidNodeView'
 
 const h = vi.hoisted(() => ({
   mermaid: {
@@ -147,6 +150,72 @@ describe('mermaid edit mode', () => {
       const md = onChange.mock.calls.at(-1)?.[0] as string | undefined
       expect(md).toContain('```mermaid')
       expect(md).toContain('graph TD')
+    })
+  })
+
+  it('does not open the block just because autoFocus focused the editor', async () => {
+    // Regression: `autoFocus` calls `view.focus()` right after setup, while
+    // ProseMirror's own default selection (`Selection.atStart(doc)`) still sits
+    // inside this sole block — focus alone must not be enough to open it.
+    const { container } = renderEditor(DIAGRAM, { autoFocus: true })
+    await waitFor(() => { expect(block(container)).not.toBeNull() })
+    await waitFor(() => {
+      expect(document.activeElement).toBe(container.querySelector('.ProseMirror'))
+    })
+    expect(block(container)?.dataset.state).toBe('preview')
+    await waitFor(() => {
+      expect(container.querySelector('.spote-mermaid__figure svg')).not.toBeNull()
+    })
+  })
+
+  it('reverts to preview when the editor loses focus', async () => {
+    const { container } = renderEditor(DIAGRAM)
+    await waitFor(() => { expect(block(container)).not.toBeNull() })
+    container.querySelector<HTMLElement>('.spote-mermaid__preview')!
+      .dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }))
+    await waitFor(() => { expect(block(container)?.dataset.state).toBe('edit') })
+    container.querySelector<HTMLElement>('.ProseMirror')!.dispatchEvent(new FocusEvent('blur'))
+    await waitFor(() => { expect(block(container)?.dataset.state).toBe('preview') })
+  })
+
+  it('moves edit state between blocks from the decoration alone, without a click', async () => {
+    const TWO_DIAGRAMS = '```mermaid\ngraph TD\n  A --> B\n```\n\n```mermaid\ngraph TD\n  C --> D\n```'
+    const { container } = renderEditor(TWO_DIAGRAMS)
+    await waitFor(() => {
+      expect(container.querySelectorAll('.spote-mermaid')).toHaveLength(2)
+    })
+    const [first, second] = Array.from(container.querySelectorAll<HTMLElement>('.spote-mermaid'))
+    first.querySelector<HTMLElement>('.spote-mermaid__preview')!
+      .dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }))
+    await waitFor(() => { expect(first.dataset.state).toBe('edit') })
+
+    // Reach the real EditorView via ProseMirror's own DOM back-reference
+    // (`dom.pmViewDesc.spec` is the node view instance — see `CustomNodeViewDesc`
+    // in prosemirror-view — which holds `view`). This dispatches a transaction
+    // directly on the view, the way the design intends, with no click on the
+    // second block — DOM focus never changes — so a correct outcome here proves
+    // the decoration's `update()`-firing mechanism drives the transition, not the
+    // focus listener (which fires only once, for the first click, in this test).
+    const viewDesc = (first as unknown as { pmViewDesc?: { spec?: { view?: EditorView } } }).pmViewDesc
+    const view = viewDesc?.spec?.view
+    expect(view).toBeTruthy()
+    if (!view) throw new Error('could not reach the EditorView via pmViewDesc')
+
+    let secondPos: number | null = null
+    let seen = 0
+    view.state.doc.descendants((node, pos) => {
+      if (!isMermaidBlock(node)) return true
+      seen += 1
+      if (seen === 2) secondPos = pos
+      return false
+    })
+    expect(secondPos).not.toBeNull()
+
+    view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, secondPos! + 1)))
+
+    await waitFor(() => {
+      expect(first.dataset.state).toBe('preview')
+      expect(second.dataset.state).toBe('edit')
     })
   })
 })

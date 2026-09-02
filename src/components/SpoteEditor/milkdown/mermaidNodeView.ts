@@ -12,6 +12,11 @@ export function isMermaidBlock(node: ProseNode): boolean {
 
 export interface CodeBlockNodeViewOptions {
   getTheme: () => MermaidTheme
+  // True once some transaction has actually set the selection (see
+  // `mermaidPlugin.ts`). Gates edit mode alongside DOM focus so `autoFocus` alone
+  // — which moves focus without dispatching a transaction — can never open a block
+  // that merely inherited ProseMirror's default initial selection.
+  getSelectionMoved: () => boolean
   onZoom: (svg: string) => void
 }
 
@@ -44,7 +49,10 @@ export class CodeBlockNodeView implements NodeView {
   // can't tell "the user clicked in" from ProseMirror's own default cursor
   // placement (`Selection.atStart`), which can land inside this very block before
   // anyone has touched the document. Tracked here, not in the decoration, because
-  // only the node view holds a reference to `view` to ask it.
+  // only the node view holds a reference to `view` to ask it. Focus alone is not
+  // enough either — `autoFocus` calls `view.focus()` right after setup, while that
+  // same default selection is still in place — so `sync()` also requires
+  // `options.getSelectionMoved()`, a latch that only a real transaction can set.
   private focused = false
   private onFocus: (() => void) | null = null
   private onBlur: (() => void) | null = null
@@ -151,14 +159,17 @@ export class CodeBlockNodeView implements NodeView {
   }
 
   private sync(): void {
-    const editing = this.focused && this.isEditing()
+    const editing = this.focused && this.options.getSelectionMoved() && this.isEditing()
     this.dom.dataset.state = editing ? 'edit' : 'preview'
     if (editing) {
       this.scheduleParse(this.node.textContent)
       return
     }
     this.clearParse()
-    if (this.status) this.status.textContent = ''
+    if (this.status) {
+      this.status.textContent = ''
+      this.status.classList.remove('is-error')
+    }
     const code = this.node.textContent
     const theme = this.options.getTheme()
     if (code === this.lastCode && theme === this.lastTheme) return
