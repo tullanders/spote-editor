@@ -39,8 +39,8 @@ export default function App() {
 
 `SpoteEditor` ships with a default set of plugins (`DEFAULT_PLUGINS`) covering
 bold, italic, inline code, link, headings (H1–H3), bullet list, ordered list,
-blockquote, code block, and divider (horizontal rule). You can replace or
-extend this set via the `plugins` prop.
+blockquote, code block, mermaid diagram, image, and divider (horizontal rule).
+You can replace or extend this set via the `plugins` prop.
 
 ### `SpotePlugin` shape
 
@@ -119,6 +119,41 @@ import { bold, italic, link, h1, h2 } from 'spote-editor'
 
 <SpoteEditor plugins={[bold, italic, link, h1, h2, myPlugin]} />
 ```
+
+## Mermaid diagrams
+
+Fenced code blocks tagged `mermaid` render as diagrams in WYSIWYG mode:
+
+````markdown
+```mermaid
+graph TD
+  A --> B
+```
+````
+
+The block stays an ordinary fenced code block in the document, so markdown round-trip
+is unaffected. Click a diagram to move the selection into it and reveal its source;
+click elsewhere, or blur the editor, and it re-renders. (Merely having the selection
+land inside the block — e.g. from `autoFocus` — does not open edit mode; it takes an
+actual click or selection move while the editor has focus.)
+
+A `⤢` button, shown on hover or keyboard focus in the corner of the diagram, opens it
+full-screen. Escape or a click on the scrim closes it — this works even when the editor
+is `readOnly`. In raw markdown mode the block is left as plain text.
+
+Diagram colours follow the `theme` prop:
+
+```tsx
+<SpoteEditor value={md} onChange={setMd} theme="dark" />   // 'light' | 'dark' | 'auto' (default)
+```
+
+`'auto'` follows the OS `prefers-color-scheme` setting. The editor's own colours are
+unaffected — those come from the `--spote-*` CSS variables.
+
+A `/mermaid` slash command inserts a seeded diagram block (works in raw mode too).
+Mermaid is loaded lazily the first time a diagram renders, so notes without diagrams
+never pay for it — and it's marked `external` in the build, so it doesn't add to
+`spote-editor`'s own bundle size.
 
 ## Development
 
