@@ -17,7 +17,8 @@ import type { MenuPosition } from '../command-core/useCommandMenu'
 import { applyAction } from './applyAction'
 import { createSlashPlugin } from './slashPlugin'
 import { createTaskCheckboxPlugin } from './taskCheckboxPlugin'
-import { createMermaidPlugin } from './mermaidPlugin'
+import { createMermaidPlugin, SET_MERMAID_THEME } from './mermaidPlugin'
+import type { MermaidTheme } from './mermaidRenderer'
 import { imageFilesFrom, nextUploadId, placeholderSrc } from '../command-core/imageUpload'
 
 function findImageBySrc(view: ProseView, src: string): { pos: number; nodeSize: number; attrs: Record<string, unknown> } | null {
@@ -65,6 +66,8 @@ export interface MilkdownEditorProps {
   autoFocus?: boolean
   /** Accepted for prop parity with the raw editor; not yet applied in WYSIWYG (v1). */
   placeholder?: string
+  /** Diagram rendering theme, already resolved from the public `theme` prop. */
+  theme?: MermaidTheme
   requestLink: (position: MenuPosition) => Promise<string | null>
   onUpload?: (file: File) => Promise<string>
   pickImage: () => Promise<File | null>
@@ -74,7 +77,7 @@ export interface MilkdownEditorProps {
  * Inner component: must live under a {@link MilkdownProvider} so `useEditor` and
  * the `<Milkdown />` mount point share editor context.
  */
-function MilkdownEditorInner({ value, onChange, plugins, readOnly, autoFocus, requestLink, onUpload, pickImage }: MilkdownEditorProps) {
+function MilkdownEditorInner({ value, onChange, plugins, readOnly, autoFocus, theme, requestLink, onUpload, pickImage }: MilkdownEditorProps) {
   const menu = useCommandMenu(slashPlugins(plugins))
   const [bubble, setBubble] = useState<MenuPosition | null>(null)
 
@@ -85,6 +88,7 @@ function MilkdownEditorInner({ value, onChange, plugins, readOnly, autoFocus, re
   const readOnlyRef = useRef(readOnly); readOnlyRef.current = readOnly
   const onUploadRef = useRef(onUpload); onUploadRef.current = onUpload
   const pickImageRef = useRef(pickImage); pickImageRef.current = pickImage
+  const themeRef = useRef<MermaidTheme>(theme ?? 'light'); themeRef.current = theme ?? 'light'
   const triggerPosRef = useRef(0)
   // Last markdown we emitted, used to guard the controlled reconcile loop.
   const lastMarkdownRef = useRef(value)
@@ -146,7 +150,7 @@ function MilkdownEditorInner({ value, onChange, plugins, readOnly, autoFocus, re
         ),
       )
       .use($prose(() => createTaskCheckboxPlugin()))
-      .use($prose(() => createMermaidPlugin({ initialTheme: 'light', onZoom: () => {} }))),
+      .use($prose(() => createMermaidPlugin({ initialTheme: themeRef.current, onZoom: () => {} }))),
   )
 
   // Focus once the editor has finished creating (autoFocus at setup only).
@@ -168,6 +172,19 @@ function MilkdownEditorInner({ value, onChange, plugins, readOnly, autoFocus, re
     editor.action(replaceAll(value))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value])
+
+  // Push a theme change into the editor as an ordinary transaction. The plugin's
+  // decorations then differ, which is what makes ProseMirror call every mermaid node
+  // view's update() so already-rendered diagrams re-render in the new theme.
+  useEffect(() => {
+    const editor = get()
+    if (!editor) return
+    editor.action((ctx) => {
+      const view = ctx.get(editorViewCtx)
+      view.dispatch(view.state.tr.setMeta(SET_MERMAID_THEME, themeRef.current))
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [theme])
 
   async function runSlash(id: string) {
     const editor = get()

@@ -219,3 +219,46 @@ describe('mermaid edit mode', () => {
     })
   })
 })
+
+describe('mermaid theming', () => {
+  beforeEach(() => {
+    h.mermaid.initialize.mockReset()
+    h.mermaid.render.mockReset().mockResolvedValue({ svg: '<svg></svg>' })
+    h.mermaid.parse.mockReset().mockResolvedValue(true)
+  })
+
+  it('renders with the dark theme when asked', async () => {
+    renderEditor(DIAGRAM, { theme: 'dark' })
+    await waitFor(() => {
+      expect(h.mermaid.initialize).toHaveBeenCalledWith(expect.objectContaining({ theme: 'dark' }))
+    })
+  })
+
+  it('re-renders already-rendered diagrams when the theme changes', async () => {
+    const { rerender } = render(
+      <MilkdownEditor
+        value={DIAGRAM}
+        onChange={vi.fn()}
+        plugins={[]}
+        theme="light"
+        requestLink={async () => null}
+        pickImage={async () => null}
+      />,
+    )
+    await waitFor(() => { expect(h.mermaid.render).toHaveBeenCalledTimes(1) })
+    rerender(
+      <MilkdownEditor
+        value={DIAGRAM}
+        onChange={vi.fn()}
+        plugins={[]}
+        theme="dark"
+        requestLink={async () => null}
+        pickImage={async () => null}
+      />,
+    )
+    await waitFor(() => {
+      expect(h.mermaid.initialize).toHaveBeenCalledWith(expect.objectContaining({ theme: 'dark' }))
+      expect(h.mermaid.render).toHaveBeenCalledTimes(2)
+    })
+  })
+})

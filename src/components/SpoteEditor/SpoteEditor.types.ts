@@ -1,4 +1,5 @@
 import type { SpotePlugin } from './command-core/plugin.types'
+import type { ThemePreference } from './useResolvedTheme'
 
 export type EditorMode = 'wysiwyg' | 'raw'
 
@@ -21,4 +22,6 @@ export interface SpoteEditorProps {
   readOnly?: boolean
   className?: string
   autoFocus?: boolean
+  /** Diagram (mermaid) rendering theme. The editor's own colours come from the `--spote-*` CSS variables. */
+  theme?: ThemePreference
 }

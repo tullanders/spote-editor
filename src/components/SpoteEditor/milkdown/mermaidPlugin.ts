@@ -31,17 +31,13 @@ export interface MermaidPluginOptions {
  * ordinary transaction — see Task 5 / `MilkdownEditor`.
  */
 export function createMermaidPlugin(options: MermaidPluginOptions): Plugin<MermaidPluginState> {
-  let currentTheme = options.initialTheme
-  let currentSelectionMoved = false
   return new Plugin<MermaidPluginState>({
     key: mermaidPluginKey,
     state: {
       init: () => ({ theme: options.initialTheme, selectionMoved: false }),
       apply: (tr, value) => {
         const nextTheme = (tr.getMeta(SET_MERMAID_THEME) as MermaidTheme | undefined) ?? value.theme
-        if (nextTheme !== value.theme) currentTheme = nextTheme
         const selectionMoved = value.selectionMoved || tr.selectionSet
-        if (selectionMoved) currentSelectionMoved = true
         if (nextTheme === value.theme && selectionMoved === value.selectionMoved) return value
         return { theme: nextTheme, selectionMoved }
       },
@@ -50,8 +46,8 @@ export function createMermaidPlugin(options: MermaidPluginOptions): Plugin<Merma
       nodeViews: {
         code_block: (node, view, getPos) =>
           new CodeBlockNodeView(node, view, getPos, {
-            getTheme: () => currentTheme,
-            getSelectionMoved: () => currentSelectionMoved,
+            getTheme: () => mermaidPluginKey.getState(view.state)?.theme ?? 'light',
+            getSelectionMoved: () => mermaidPluginKey.getState(view.state)?.selectionMoved ?? false,
             onZoom: options.onZoom,
           }),
       },
