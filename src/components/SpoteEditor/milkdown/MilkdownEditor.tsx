@@ -16,6 +16,7 @@ import { slashPlugins, bubblePlugins, pluginById } from '../command-core/pluginM
 import type { MenuPosition } from '../command-core/useCommandMenu'
 import { applyAction } from './applyAction'
 import { createSlashPlugin } from './slashPlugin'
+import { createTaskCheckboxPlugin } from './taskCheckboxPlugin'
 import { imageFilesFrom, nextUploadId, placeholderSrc } from '../command-core/imageUpload'
 
 function findImageBySrc(view: ProseView, src: string): { pos: number; nodeSize: number; attrs: Record<string, unknown> } | null {
@@ -142,7 +143,8 @@ function MilkdownEditorInner({ value, onChange, plugins, readOnly, autoFocus, re
             onClose: () => menuRef.current.close(),
           }),
         ),
-      ),
+      )
+      .use($prose(() => createTaskCheckboxPlugin())),
   )
 
   // Focus once the editor has finished creating (autoFocus at setup only).

@@ -23,4 +23,9 @@ export default [
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     },
   },
+  {
+    // Tests run under vitest in Node, so they may reach for node globals/APIs.
+    files: ['src/**/*.test.{ts,tsx}'],
+    languageOptions: { globals: { ...globals.node } },
+  },
 ]

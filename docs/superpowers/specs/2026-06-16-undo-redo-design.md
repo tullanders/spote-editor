@@ -4,6 +4,9 @@ Date: 2026-06-16
 Status: Draft for review
 
 ## Goal
+* [ ] apa
+* [x] bepa
+
 
 Working undo/redo via keyboard (Cmd/Ctrl+Z, redo via Shift+Cmd/Ctrl+Z and Ctrl+Y) in BOTH
 modes. No visible toolbar buttons in v1.

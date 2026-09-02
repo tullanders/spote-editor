@@ -35,6 +35,23 @@
 .spote-editor__cm { padding: 12px; }
 .spote-editor__cm .cm-editor { font-family: var(--spote-mono); font-size: 13px; outline: none; }
 
+/* GFM task lists. Milkdown is headless: it renders a task item as a bare
+   <li data-item-type="task" data-checked="true|false"> and leaves the checkbox
+   to the theme, so without these rules the item falls back to an ordinary
+   bullet. The <input> itself comes from the task checkbox plugin; here we drop
+   the bullet and hang the box in the list's marker gutter, which keeps it
+   aligned with the text whatever margins the host gives paragraphs. */
+.spote-editor__milkdown li[data-item-type='task'] { list-style: none; }
+.spote-task-checkbox {
+  width: 1em;
+  height: 1em;
+  margin: 0 0.5em 0 -1.5em;
+  vertical-align: -0.15em;
+  accent-color: var(--spote-accent);
+  cursor: pointer;
+}
+.spote-task-checkbox:disabled { cursor: default; }
+
 /* These overlays are portaled to document.body, OUTSIDE .spote-editor, so the
    theme variables don't cascade to them — every var() needs a fallback here. */
 .spote-command-menu,
