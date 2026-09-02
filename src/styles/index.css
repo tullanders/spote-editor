@@ -128,8 +128,8 @@
 }
 .spote-link-popover__hits button:hover { background: rgba(59, 109, 240, 0.12); }
 
-/* Mermaid diagrams. Which half is visible is driven by `data-state`, set from the
-   selection by the mermaid plugin — see mermaidPlugin.ts. */
+/* Mermaid diagrams. Which half is visible is driven by `data-state`, set by the
+   node view from the selection and DOM focus — see mermaidNodeView.ts. */
 .spote-mermaid {
   border: 1px solid var(--spote-border);
   border-radius: var(--spote-radius);
@@ -150,3 +150,15 @@
   white-space: pre-wrap;
 }
 .spote-mermaid > pre { margin: 0; border: none; border-radius: 0; }
+.spote-mermaid[data-state='preview'] > pre,
+.spote-mermaid[data-state='preview'] > .spote-mermaid__status { display: none; }
+.spote-mermaid[data-state='edit'] > .spote-mermaid__preview { display: none; }
+.spote-mermaid[data-state='preview'] > .spote-mermaid__preview { cursor: pointer; }
+.spote-mermaid__status {
+  padding: 4px 12px;
+  font-family: var(--spote-mono);
+  font-size: 12px;
+  border-top: 1px solid var(--spote-border);
+  min-height: 20px;
+}
+.spote-mermaid__status.is-error { color: #b00020; }

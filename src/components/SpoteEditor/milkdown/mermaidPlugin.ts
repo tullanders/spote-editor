@@ -1,5 +1,6 @@
 import { Plugin, PluginKey } from '@milkdown/prose/state'
-import { CodeBlockNodeView } from './mermaidNodeView'
+import { Decoration, DecorationSet } from '@milkdown/prose/view'
+import { CodeBlockNodeView, isMermaidBlock } from './mermaidNodeView'
 import type { MermaidTheme } from './mermaidRenderer'
 
 export const mermaidPluginKey = new PluginKey<{ theme: MermaidTheme }>('spote-mermaid')
@@ -38,6 +39,32 @@ export function createMermaidPlugin(options: MermaidPluginOptions): Plugin<{ the
             getTheme: () => currentTheme,
             onZoom: options.onZoom,
           }),
+      },
+      /**
+       * One node decoration per mermaid block. These attributes do not drive the
+       * CSS — the node view owns `data-state` (see `mermaidNodeView.ts`), because
+       * edit state also depends on DOM focus, which this callback cannot see (it
+       * receives only `state`, never `view`). `data-selected` exists purely to make
+       * the decoration set differ whenever the selection moves, which is what
+       * guarantees the node view's `update()` runs; `data-theme` carries the theme.
+       */
+      decorations(state) {
+        const theme = mermaidPluginKey.getState(state)?.theme ?? 'light'
+        const decorations: Decoration[] = []
+        state.doc.descendants((node, pos) => {
+          if (node.type.name !== 'code_block') return true
+          if (!isMermaidBlock(node)) return false
+          const { from, to } = state.selection
+          const editing = from >= pos && to <= pos + node.nodeSize
+          decorations.push(
+            Decoration.node(pos, pos + node.nodeSize, {
+              'data-selected': editing ? 'true' : 'false',
+              'data-theme': theme,
+            }),
+          )
+          return false
+        })
+        return DecorationSet.create(state.doc, decorations)
       },
     },
   })
