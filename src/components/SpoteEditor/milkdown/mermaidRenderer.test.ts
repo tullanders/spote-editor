@@ -4,6 +4,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 // `loads` counts factory invocations, which is how we prove the module is imported once.
 const h = vi.hoisted(() => ({
   loads: 0,
+  // When true, the next `import('mermaid')` throws instead of resolving — used to
+  // simulate a failed chunk load without permanently poisoning the module mock.
+  failImport: false,
   mermaid: {
     initialize: vi.fn(),
     render: vi.fn(),
@@ -13,6 +16,7 @@ const h = vi.hoisted(() => ({
 
 vi.mock('mermaid', () => {
   h.loads++
+  if (h.failImport) throw new Error('chunk load failed')
   return { default: h.mermaid }
 })
 
@@ -23,6 +27,7 @@ describe('mermaidRenderer', () => {
     h.mermaid.initialize.mockReset()
     h.mermaid.render.mockReset()
     h.mermaid.parse.mockReset()
+    h.failImport = false
     document.body.innerHTML = ''
   })
 
@@ -88,5 +93,23 @@ describe('mermaidRenderer', () => {
   it('reports valid syntax from parseMermaid', async () => {
     h.mermaid.parse.mockResolvedValue(true)
     expect(await parseMermaid('graph TD\n A-->B')).toEqual({ ok: true })
+  })
+
+  // Placed last: it uses `vi.resetModules()` to get a fresh `loading` memo (isolated
+  // from the module instance every earlier test shares via the static import above),
+  // and its extra `import('mermaid')` calls would otherwise perturb `h.loads` for
+  // the "loads mermaid only once" assertion above.
+  it('retries the import after a rejected load instead of caching the failure', async () => {
+    vi.resetModules()
+    h.failImport = true
+    const fresh = await import('./mermaidRenderer')
+
+    const first = await fresh.renderMermaid('graph TD\n A-->B', 'light')
+    expect(first.ok).toBe(false)
+
+    h.failImport = false
+    h.mermaid.render.mockResolvedValue({ svg: '<svg id="retried"></svg>' })
+    const second = await fresh.renderMermaid('graph TD\n A-->B', 'light')
+    expect(second).toEqual({ ok: true, svg: '<svg id="retried"></svg>' })
   })
 })

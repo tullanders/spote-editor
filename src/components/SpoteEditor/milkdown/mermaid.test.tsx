@@ -179,6 +179,41 @@ describe('mermaid edit mode', () => {
     await waitFor(() => { expect(block(container)?.dataset.state).toBe('preview') })
   })
 
+  it('does not open a diagram in a swapped-in document just because it ends where the cursor used to be', async () => {
+    // Regression: the controlled reconcile (`replaceAll`) doesn't set
+    // `selectionSet`, so the `selectionMoved` latch used to survive a note swap.
+    // ProseMirror then maps the old cursor into the new document, and if that
+    // lands inside a trailing mermaid block while the editor still has DOM focus,
+    // the diagram used to open with no user action at all.
+    const NOTE_A = 'first note\n\n' + DIAGRAM
+    const NOTE_B = 'second note\n\n```mermaid\ngraph TD\n  X --> Y\n```'
+    const { container, rerender } = renderEditor(NOTE_A)
+    await waitFor(() => { expect(block(container)).not.toBeNull() })
+
+    // Set the latch and open the diagram in NOTE_A, exactly like a real user click.
+    container.querySelector<HTMLElement>('.spote-mermaid__preview')!
+      .dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }))
+    await waitFor(() => { expect(block(container)?.dataset.state).toBe('edit') })
+
+    // Swap to a different note (still focused — enterEdit() called view.focus()),
+    // ending in its own mermaid block.
+    rerender(
+      <MilkdownEditor
+        value={NOTE_B}
+        onChange={vi.fn()}
+        plugins={[]}
+        requestLink={async () => null}
+        pickImage={async () => null}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(container.querySelector('.spote-mermaid > pre > code')?.textContent)
+        .toContain('X --> Y')
+    })
+    expect(block(container)?.dataset.state).toBe('preview')
+  })
+
   it('moves edit state between blocks from the decoration alone, without a click', async () => {
     const TWO_DIAGRAMS = '```mermaid\ngraph TD\n  A --> B\n```\n\n```mermaid\ngraph TD\n  C --> D\n```'
     const { container } = renderEditor(TWO_DIAGRAMS)

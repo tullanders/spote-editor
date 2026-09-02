@@ -10,6 +10,19 @@ export function isMermaidBlock(node: ProseNode): boolean {
   return node.type.name === 'code_block' && node.attrs.language === MERMAID_LANGUAGE
 }
 
+/**
+ * True when the selection range `[from, to]` sits strictly inside a block at `pos`
+ * with the given `nodeSize` — after its opening token and before its closing one.
+ * Strict on both ends deliberately: a `TextSelection` can never resolve to either
+ * boundary position, so an inclusive check is practically unreachable through one,
+ * but a `NodeSelection` on the block itself, or a gap cursor just outside it, could
+ * satisfy an inclusive check and be wrongly counted as "inside". Shared by the node
+ * view's `isEditing()` and the plugin's decoration predicate so they cannot drift.
+ */
+export function isSelectionInsideBlock(pos: number, nodeSize: number, from: number, to: number): boolean {
+  return from > pos && to < pos + nodeSize
+}
+
 export interface CodeBlockNodeViewOptions {
   getTheme: () => MermaidTheme
   // True once some transaction has actually set the selection (see
@@ -45,6 +58,7 @@ export class CodeBlockNodeView implements NodeView {
   private lastTheme: MermaidTheme | null = null
   private status: HTMLElement | null = null
   private parseTimer: ReturnType<typeof setTimeout> | null = null
+  private parseToken = 0
   // Edit state needs DOM focus as well as selection: `view.state.selection` alone
   // can't tell "the user clicked in" from ProseMirror's own default cursor
   // placement (`Selection.atStart`), which can land inside this very block before
@@ -140,7 +154,16 @@ export class CodeBlockNodeView implements NodeView {
     // A language change flips the whole DOM shape; let ProseMirror rebuild instead.
     if (isMermaidBlock(node) !== isMermaidBlock(this.node)) return false
     this.node = node
-    if (!isMermaidBlock(node)) return true
+    if (!isMermaidBlock(node)) {
+      // The constructor only sets `data-language` once; a language change that
+      // doesn't cross the mermaid boundary (js -> ts, or -> empty) must still be
+      // reflected, or the default node view's behaviour of re-rendering is lost.
+      const pre = this.dom
+      const language = node.attrs.language as string | undefined
+      if (language) pre.dataset.language = language
+      else delete pre.dataset.language
+      return true
+    }
     this.sync()
     return true
   }
@@ -150,10 +173,16 @@ export class CodeBlockNodeView implements NodeView {
     return !this.contentDOM.contains(mutation.target)
   }
 
-  /** ProseMirror must not handle events inside the preview — we handle them. */
+  /**
+   * ProseMirror must not handle events inside the preview — we handle them. Scoped
+   * to mermaid blocks only: for a plain code block this would otherwise swallow
+   * events on the `pre` padding outside `contentDOM` too, which ProseMirror's
+   * default node view would have let through.
+   */
   stopEvent(event: Event): boolean {
     const target = event.target
-    return target instanceof Node ? !this.contentDOM.contains(target) : false
+    if (!(target instanceof Node)) return false
+    return isMermaidBlock(this.node) && !this.contentDOM.contains(target)
   }
 
   destroy(): void {
@@ -179,7 +208,7 @@ export class CodeBlockNodeView implements NodeView {
     const pos = this.getPos()
     if (pos == null) return false
     const { from, to } = this.view.state.selection
-    return from >= pos && to <= pos + this.node.nodeSize
+    return isSelectionInsideBlock(pos, this.node.nodeSize, from, to)
   }
 
   private sync(): void {
@@ -208,8 +237,14 @@ export class CodeBlockNodeView implements NodeView {
    */
   private scheduleParse(code: string): void {
     this.clearParse()
+    const token = this.parseToken
     this.parseTimer = setTimeout(() => {
+      this.parseTimer = null
       void parseMermaid(code).then((result) => {
+        // A newer parse superseded this one (fresh keystrokes, edit mode was left,
+        // or the view was destroyed) while we awaited — cancelling the timer alone
+        // can't stop a parse that had already started.
+        if (token !== this.parseToken) return
         if (!this.status) return
         this.status.textContent = result.ok ? '' : `⚠ ${result.message}`
         this.status.classList.toggle('is-error', !result.ok)
@@ -218,6 +253,9 @@ export class CodeBlockNodeView implements NodeView {
   }
 
   private clearParse(): void {
+    // Bump even when no timer is pending: a previously scheduled parse may already
+    // have fired and be awaiting `parseMermaid()`, and this is what invalidates it.
+    this.parseToken++
     if (this.parseTimer == null) return
     clearTimeout(this.parseTimer)
     this.parseTimer = null

@@ -8,7 +8,16 @@ type MermaidModule = typeof import('mermaid')['default']
 let loading: Promise<MermaidModule> | null = null
 
 function load(): Promise<MermaidModule> {
-  loading ??= import('mermaid').then((m) => m.default)
+  // A rejected import (e.g. a flaky chunk load) must not stay memoized forever —
+  // otherwise every diagram errors for the rest of the session with no way to
+  // recover short of a page reload. Clearing the memo on failure lets the next
+  // render try again.
+  loading ??= import('mermaid')
+    .then((m) => m.default)
+    .catch((error) => {
+      loading = null
+      throw error
+    })
   return loading
 }
 

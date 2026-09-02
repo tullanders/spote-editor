@@ -17,7 +17,7 @@ import type { MenuPosition } from '../command-core/useCommandMenu'
 import { applyAction } from './applyAction'
 import { createSlashPlugin } from './slashPlugin'
 import { createTaskCheckboxPlugin } from './taskCheckboxPlugin'
-import { createMermaidPlugin, SET_MERMAID_THEME } from './mermaidPlugin'
+import { createMermaidPlugin, SET_MERMAID_THEME, RESET_MERMAID_SELECTION } from './mermaidPlugin'
 import type { MermaidTheme } from './mermaidRenderer'
 import { MermaidOverlay } from './MermaidOverlay'
 import { imageFilesFrom, nextUploadId, placeholderSrc } from '../command-core/imageUpload'
@@ -172,12 +172,29 @@ function MilkdownEditorInner({ value, onChange, plugins, readOnly, autoFocus, th
     if (value === lastMarkdownRef.current) return
     lastMarkdownRef.current = value
     editor.action(replaceAll(value))
+    // `replaceAll` dispatches `tr.replace(0, size, slice)`, which does not set
+    // `selectionSet` — so the mermaid plugin's `selectionMoved` latch would
+    // otherwise survive into this new document, and the mapped cursor could land
+    // inside a mermaid block here even though nothing the user did opened it. This
+    // is the one moment the document stops being the one the user was working in,
+    // so it is the one place the latch gets forced back to false.
+    editor.action((ctx) => {
+      const view = ctx.get(editorViewCtx)
+      view.dispatch(view.state.tr.setMeta(RESET_MERMAID_SELECTION, true))
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value])
 
   // Push a theme change into the editor as an ordinary transaction. The plugin's
   // decorations then differ, which is what makes ProseMirror call every mermaid node
   // view's update() so already-rendered diagrams re-render in the new theme.
+  //
+  // Also depends on `get()`, mirroring the `autoFocus` effect above: if `theme`
+  // changes (or is already non-default) before the editor finishes creating, this
+  // bails out with nothing dispatched. Without `get()` in the deps, that theme is
+  // then lost — the plugin keeps `initialTheme` and nothing corrects it until the
+  // next *change* to `theme`, which may never come. Re-running once `get()` starts
+  // returning the editor picks up `themeRef.current` regardless.
   useEffect(() => {
     const editor = get()
     if (!editor) return
@@ -186,7 +203,7 @@ function MilkdownEditorInner({ value, onChange, plugins, readOnly, autoFocus, th
       view.dispatch(view.state.tr.setMeta(SET_MERMAID_THEME, themeRef.current))
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [theme])
+  }, [theme, get()])
 
   async function runSlash(id: string) {
     const editor = get()
