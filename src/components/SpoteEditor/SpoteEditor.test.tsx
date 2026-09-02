@@ -4,13 +4,13 @@ import userEvent from '@testing-library/user-event'
 import { SpoteEditor } from './SpoteEditor'
 import type { SpotePlugin } from './command-core/plugin.types'
 
-const captured: { plugins?: SpotePlugin[]; onUpload?: unknown } = {}
-type MockEditorProps = { value: string; plugins: SpotePlugin[]; onUpload?: unknown }
+const captured: { plugins?: SpotePlugin[]; onUpload?: unknown; theme?: string } = {}
+type MockEditorProps = { value: string; plugins: SpotePlugin[]; onUpload?: unknown; theme?: string }
 vi.mock('./codemirror/CodeMirrorEditor', () => ({
-  CodeMirrorEditor: ({ value, plugins, onUpload }: MockEditorProps) => { captured.plugins = plugins; captured.onUpload = onUpload; return <div data-testid="raw">{value}</div> },
+  CodeMirrorEditor: ({ value, plugins, onUpload, theme }: MockEditorProps) => { captured.plugins = plugins; captured.onUpload = onUpload; captured.theme = theme; return <div data-testid="raw">{value}</div> },
 }))
 vi.mock('./milkdown/MilkdownEditor', () => ({
-  MilkdownEditor: ({ value, plugins, onUpload }: MockEditorProps) => { captured.plugins = plugins; captured.onUpload = onUpload; return <div data-testid="wysiwyg">{value}</div> },
+  MilkdownEditor: ({ value, plugins, onUpload, theme }: MockEditorProps) => { captured.plugins = plugins; captured.onUpload = onUpload; captured.theme = theme; return <div data-testid="wysiwyg">{value}</div> },
 }))
 
 describe('SpoteEditor shell', () => {
@@ -51,5 +51,10 @@ describe('SpoteEditor shell', () => {
     render(<SpoteEditor value="x" onChange={vi.fn()} onUpload={onUpload} />)
     expect(captured.plugins!.some((p) => p.id === 'image')).toBe(true)
     expect(captured.onUpload).toBe(onUpload)
+  })
+
+  it('resolves and passes the theme prop to the engine', () => {
+    render(<SpoteEditor value="x" onChange={vi.fn()} theme="dark" />)
+    expect(captured.theme).toBe('dark')
   })
 })

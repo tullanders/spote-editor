@@ -4,13 +4,13 @@
   "description": "A React editor component",
   "license": "MIT",
   "type": "module",
-  "main": "./dist/spote-editor.umd.cjs",
+  "main": "./dist/spote-editor.cjs",
   "module": "./dist/spote-editor.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "import": "./dist/spote-editor.js",
-      "require": "./dist/spote-editor.umd.cjs",
+      "require": "./dist/spote-editor.cjs",
       "types": "./dist/index.d.ts"
     },
     "./styles": "./dist/style.css"

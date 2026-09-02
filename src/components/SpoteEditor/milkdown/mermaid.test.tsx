@@ -6,6 +6,7 @@ import type { EditorView } from '@milkdown/prose/view'
 import { MilkdownEditor } from './MilkdownEditor'
 import { MermaidOverlay } from './MermaidOverlay'
 import { isMermaidBlock } from './mermaidNodeView'
+import { mermaid } from '../command-core/plugins/blocks'
 
 const h = vi.hoisted(() => ({
   mermaid: {
@@ -386,5 +387,24 @@ describe('mermaid zoom overlay', () => {
     act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })) })
     await waitFor(() => { expect(document.querySelector('.spote-mermaid-overlay')).toBeNull() })
     await waitFor(() => { expect(document.activeElement).toBe(container.querySelector('.ProseMirror')) })
+  })
+})
+
+describe('mermaid slash command', () => {
+  beforeEach(() => {
+    h.mermaid.initialize.mockReset()
+    h.mermaid.render.mockReset().mockResolvedValue({ svg: '<svg data-testid="inserted-diagram"></svg>' })
+    h.mermaid.parse.mockReset().mockResolvedValue(true)
+  })
+
+  it('inserts a mermaid diagram block via the slash action', async () => {
+    const action = mermaid.slash!({ requestLink: async () => null, pickImage: async () => null })
+    expect(action).toEqual({ kind: 'insert', markdown: '```mermaid\ngraph TD\n  A --> B\n```\n' })
+
+    // Render an editor with the action's markdown to verify it renders as a diagram
+    const { container } = renderEditor(action.markdown)
+    await waitFor(() => {
+      expect(container.querySelector('.spote-mermaid__figure svg')).not.toBeNull()
+    })
   })
 })

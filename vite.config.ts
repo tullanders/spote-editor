@@ -13,16 +13,10 @@ export default defineConfig({
       entry: resolve(__dirname, 'src/index.ts'),
       name: 'SpoteEditor',
       fileName: 'spote-editor',
+      formats: ['es', 'cjs'],
     },
     rollupOptions: {
       external: ['react', 'react-dom', 'react/jsx-runtime', 'mermaid'],
-      output: {
-        globals: {
-          react: 'React',
-          'react-dom': 'ReactDOM',
-          'react/jsx-runtime': 'jsxRuntime',
-        },
-      },
     },
   },
   resolve: {
