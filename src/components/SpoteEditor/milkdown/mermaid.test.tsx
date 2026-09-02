@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { TextSelection } from '@milkdown/prose/state'
 import type { EditorView } from '@milkdown/prose/view'
 import { MilkdownEditor } from './MilkdownEditor'
+import { MermaidOverlay } from './MermaidOverlay'
 import { isMermaidBlock } from './mermaidNodeView'
 
 const h = vi.hoisted(() => ({
@@ -329,27 +330,20 @@ describe('mermaid zoom overlay', () => {
     await waitFor(() => { expect(document.querySelector('.spote-mermaid-overlay')).not.toBeNull() })
   })
 
-  it('does not leak its Escape listener after closing', async () => {
-    const addSpy = vi.spyOn(document, 'addEventListener')
-    const removeSpy = vi.spyOn(document, 'removeEventListener')
-    await openOverlay()
-    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })) })
-    await waitFor(() => { expect(document.querySelector('.spote-mermaid-overlay')).toBeNull() })
+  it('stops listening for Escape once it is closed', () => {
+    // Tested as a unit, directly, with an injected onClose: only this shape makes a
+    // leaked listener observable. Going through MilkdownEditor's onClose
+    // (setZoomSvg(null) + refocus) can't distinguish a real cleanup from a leak — a
+    // second call is a React state bail-out either way, so nothing would fail.
+    const onClose = vi.fn()
+    const { unmount } = render(<MermaidOverlay svg="<svg></svg>" onClose={onClose} />)
 
-    const keydownAdds = addSpy.mock.calls.filter(([type]) => type === 'keydown').length
-    const keydownRemoves = removeSpy.mock.calls.filter(([type]) => type === 'keydown').length
-    expect(keydownRemoves).toBe(keydownAdds)
+    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })) })
+    expect(onClose).toHaveBeenCalledTimes(1)
 
-    // If the listener had leaked, this second Escape would still be observed by
-    // the closed overlay's stale handler. It must be a silent no-op: no error, and
-    // the overlay must not reopen or otherwise react.
-    expect(() => {
-      act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })) })
-    }).not.toThrow()
-    expect(document.querySelector('.spote-mermaid-overlay')).toBeNull()
-
-    addSpy.mockRestore()
-    removeSpy.mockRestore()
+    unmount()
+    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })) })
+    expect(onClose).toHaveBeenCalledTimes(1)
   })
 
   it('returns focus to the editor when the overlay closes', async () => {
