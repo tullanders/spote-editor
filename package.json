@@ -61,6 +61,7 @@
     "@milkdown/preset-gfm": "^7.21.2",
     "@milkdown/prose": "^7.21.2",
     "@milkdown/react": "^7.21.2",
-    "@milkdown/utils": "^7.21.2"
+    "@milkdown/utils": "^7.21.2",
+    "mermaid": "^11.17.2"
   }
 }

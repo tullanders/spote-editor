@@ -12,7 +12,9 @@ Built for [Spote](https://spote.cloud) — markdown notes with MCP support — b
 
 Both modes share the same markdown string as their single source of truth, so toggling
 between them preserves content. Because the package bundles two full editor engines, it is
-relatively large (~400 kB gzipped) — expected for what it does.
+relatively large (~400 kB gzipped) — expected for what it does. Mermaid is a separate
+dependency, loaded lazily the first time a diagram is rendered, so notes without diagrams
+never pay for it.
 
 Both Milkdown and CodeMirror are MIT-licensed.
 

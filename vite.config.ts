@@ -15,7 +15,7 @@ export default defineConfig({
       fileName: 'spote-editor',
     },
     rollupOptions: {
-      external: ['react', 'react-dom', 'react/jsx-runtime'],
+      external: ['react', 'react-dom', 'react/jsx-runtime', 'mermaid'],
       output: {
         globals: {
           react: 'React',
