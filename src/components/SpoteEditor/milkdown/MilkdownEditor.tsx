@@ -19,6 +19,7 @@ import { createSlashPlugin } from './slashPlugin'
 import { createTaskCheckboxPlugin } from './taskCheckboxPlugin'
 import { createMermaidPlugin, SET_MERMAID_THEME } from './mermaidPlugin'
 import type { MermaidTheme } from './mermaidRenderer'
+import { MermaidOverlay } from './MermaidOverlay'
 import { imageFilesFrom, nextUploadId, placeholderSrc } from '../command-core/imageUpload'
 
 function findImageBySrc(view: ProseView, src: string): { pos: number; nodeSize: number; attrs: Record<string, unknown> } | null {
@@ -80,6 +81,7 @@ export interface MilkdownEditorProps {
 function MilkdownEditorInner({ value, onChange, plugins, readOnly, autoFocus, theme, requestLink, onUpload, pickImage }: MilkdownEditorProps) {
   const menu = useCommandMenu(slashPlugins(plugins))
   const [bubble, setBubble] = useState<MenuPosition | null>(null)
+  const [zoomSvg, setZoomSvg] = useState<string | null>(null)
 
   // The editor factory runs once; route through refs so it always sees latest.
   const menuRef = useRef(menu); menuRef.current = menu
@@ -150,7 +152,7 @@ function MilkdownEditorInner({ value, onChange, plugins, readOnly, autoFocus, th
         ),
       )
       .use($prose(() => createTaskCheckboxPlugin()))
-      .use($prose(() => createMermaidPlugin({ initialTheme: themeRef.current, onZoom: () => {} }))),
+      .use($prose(() => createMermaidPlugin({ initialTheme: themeRef.current, onZoom: setZoomSvg }))),
   )
 
   // Focus once the editor has finished creating (autoFocus at setup only).
@@ -258,6 +260,15 @@ function MilkdownEditorInner({ value, onChange, plugins, readOnly, autoFocus, th
         />
       )}
       {bubble && <SelectionBubble plugins={bubblePlugins(plugins)} position={bubble} onSelect={runBubble} />}
+      {zoomSvg && (
+        <MermaidOverlay
+          svg={zoomSvg}
+          onClose={() => {
+            setZoomSvg(null)
+            get()?.action((ctx) => ctx.get(editorViewCtx).focus())
+          }}
+        />
+      )}
     </div>
   )
 }

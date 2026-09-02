@@ -56,6 +56,10 @@ export class CodeBlockNodeView implements NodeView {
   private focused = false
   private onFocus: (() => void) | null = null
   private onBlur: (() => void) | null = null
+  // The last successfully rendered SVG, so the zoom overlay (React, driven by
+  // `options.onZoom`) has something to show without re-rendering. Cleared when a
+  // render fails so a stale diagram can never be zoomed into.
+  private lastSvg = ''
 
   constructor(
     private node: ProseNode,
@@ -88,6 +92,26 @@ export class CodeBlockNodeView implements NodeView {
     figure.className = 'spote-mermaid__figure'
     preview.appendChild(figure)
     this.figure = figure
+
+    const zoom = document.createElement('button')
+    zoom.type = 'button'
+    zoom.className = 'spote-mermaid__zoom'
+    zoom.setAttribute('aria-label', 'Enlarge diagram')
+    zoom.textContent = '⤢'
+    // Zoom is available under readOnly too — unlike entering edit mode below, it is
+    // not gated on `view.editable`.
+    zoom.addEventListener('mousedown', (event) => {
+      // Beat the preview's own mousedown listener, which would otherwise enter edit
+      // mode: this button sits inside `preview`, so the event bubbles there next.
+      event.preventDefault()
+      event.stopPropagation()
+    })
+    zoom.addEventListener('click', (event) => {
+      event.preventDefault()
+      event.stopPropagation()
+      if (this.lastSvg) this.options.onZoom(this.lastSvg)
+    })
+    preview.appendChild(zoom)
 
     // Clicking the diagram moves the cursor into the block and focuses the view;
     // `sync()` then flips `data-state` and the CSS reveals the code. No toggle
@@ -209,9 +233,11 @@ export class CodeBlockNodeView implements NodeView {
     if (result.ok) {
       figure.classList.remove('is-error')
       figure.innerHTML = result.svg
+      this.lastSvg = result.svg
     } else {
       figure.classList.add('is-error')
       figure.textContent = result.message
+      this.lastSvg = ''
     }
   }
 }

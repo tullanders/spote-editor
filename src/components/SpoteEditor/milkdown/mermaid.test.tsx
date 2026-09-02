@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, waitFor } from '@testing-library/react'
+import { render, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { TextSelection } from '@milkdown/prose/state'
 import type { EditorView } from '@milkdown/prose/view'
@@ -260,5 +260,59 @@ describe('mermaid theming', () => {
       expect(h.mermaid.initialize).toHaveBeenCalledWith(expect.objectContaining({ theme: 'dark' }))
       expect(h.mermaid.render).toHaveBeenCalledTimes(2)
     })
+  })
+})
+
+describe('mermaid zoom overlay', () => {
+  beforeEach(() => {
+    h.mermaid.initialize.mockReset()
+    h.mermaid.render.mockReset().mockResolvedValue({ svg: '<svg data-testid="big"></svg>' })
+    h.mermaid.parse.mockReset().mockResolvedValue(true)
+  })
+
+  async function openOverlay() {
+    const { container } = renderEditor(DIAGRAM)
+    await waitFor(() => { expect(container.querySelector('.spote-mermaid__figure svg')).not.toBeNull() })
+    const zoom = container.querySelector<HTMLButtonElement>('.spote-mermaid__zoom')!
+    // Wrapped in act: this is a native click (the real interaction path), not an
+    // RTL-simulated one, so React doesn't auto-batch the resulting setState.
+    act(() => { zoom.click() })
+    await waitFor(() => { expect(document.querySelector('.spote-mermaid-overlay')).not.toBeNull() })
+    return container
+  }
+
+  it('opens the overlay with the rendered diagram', async () => {
+    await openOverlay()
+    expect(document.querySelector('.spote-mermaid-overlay__figure svg')).not.toBeNull()
+  })
+
+  it('closes on Escape', async () => {
+    await openOverlay()
+    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })) })
+    await waitFor(() => { expect(document.querySelector('.spote-mermaid-overlay')).toBeNull() })
+  })
+
+  it('closes when the scrim is clicked', async () => {
+    await openOverlay()
+    const scrim = document.querySelector<HTMLElement>('.spote-mermaid-overlay')!
+    act(() => { scrim.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })) })
+    await waitFor(() => { expect(document.querySelector('.spote-mermaid-overlay')).toBeNull() })
+  })
+
+  it('does not enter edit mode when the zoom button is clicked', async () => {
+    const { container } = renderEditor(DIAGRAM)
+    await waitFor(() => { expect(container.querySelector('.spote-mermaid__figure svg')).not.toBeNull() })
+    const zoom = container.querySelector<HTMLButtonElement>('.spote-mermaid__zoom')!
+    // The real interaction path: mousedown reaches the preview first and would enter
+    // edit mode, so the button must stop it. Firing only `click` would not test that.
+    act(() => { zoom.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true })) })
+    act(() => { zoom.click() })
+    await waitFor(() => { expect(document.querySelector('.spote-mermaid-overlay')).not.toBeNull() })
+    expect(container.querySelector<HTMLElement>('.spote-mermaid')?.dataset.state).toBe('preview')
+  })
+
+  it('offers zoom in read-only mode', async () => {
+    const { container } = renderEditor(DIAGRAM, { readOnly: true })
+    await waitFor(() => { expect(container.querySelector('.spote-mermaid__zoom')).not.toBeNull() })
   })
 })
