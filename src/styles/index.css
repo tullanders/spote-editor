@@ -194,8 +194,8 @@
   max-height: 90vh;
   overflow: auto;
   padding: 16px;
-  background: var(--spote-bg);
-  border-radius: var(--spote-radius);
+  background: var(--spote-bg, #ffffff);
+  border-radius: var(--spote-radius, 10px);
 }
 .spote-mermaid-overlay__figure svg { max-width: 100%; height: auto; }
 .spote-mermaid-overlay__close {
@@ -208,7 +208,7 @@
   line-height: 1;
   cursor: pointer;
   background: var(--spote-popover-bg, #ffffff);
-  color: var(--spote-fg);
-  border: 1px solid var(--spote-border);
+  color: var(--spote-fg, #1a1a1a);
+  border: 1px solid var(--spote-border, #d8dce3);
   border-radius: 50%;
 }

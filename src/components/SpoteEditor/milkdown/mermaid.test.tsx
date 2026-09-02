@@ -315,4 +315,47 @@ describe('mermaid zoom overlay', () => {
     const { container } = renderEditor(DIAGRAM, { readOnly: true })
     await waitFor(() => { expect(container.querySelector('.spote-mermaid__zoom')).not.toBeNull() })
   })
+
+  it('opens via keyboard activation, not just a pointer click', async () => {
+    const { container } = renderEditor(DIAGRAM)
+    await waitFor(() => { expect(container.querySelector('.spote-mermaid__figure svg')).not.toBeNull() })
+    const zoom = container.querySelector<HTMLButtonElement>('.spote-mermaid__zoom')!
+    zoom.focus()
+    expect(document.activeElement).toBe(zoom)
+    // A native button's default action fires a click on Enter when it has focus;
+    // user-event reproduces that default so this exercises real keyboard activation,
+    // not a synthetic call to onClick.
+    await userEvent.keyboard('{Enter}')
+    await waitFor(() => { expect(document.querySelector('.spote-mermaid-overlay')).not.toBeNull() })
+  })
+
+  it('does not leak its Escape listener after closing', async () => {
+    const addSpy = vi.spyOn(document, 'addEventListener')
+    const removeSpy = vi.spyOn(document, 'removeEventListener')
+    await openOverlay()
+    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })) })
+    await waitFor(() => { expect(document.querySelector('.spote-mermaid-overlay')).toBeNull() })
+
+    const keydownAdds = addSpy.mock.calls.filter(([type]) => type === 'keydown').length
+    const keydownRemoves = removeSpy.mock.calls.filter(([type]) => type === 'keydown').length
+    expect(keydownRemoves).toBe(keydownAdds)
+
+    // If the listener had leaked, this second Escape would still be observed by
+    // the closed overlay's stale handler. It must be a silent no-op: no error, and
+    // the overlay must not reopen or otherwise react.
+    expect(() => {
+      act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })) })
+    }).not.toThrow()
+    expect(document.querySelector('.spote-mermaid-overlay')).toBeNull()
+
+    addSpy.mockRestore()
+    removeSpy.mockRestore()
+  })
+
+  it('returns focus to the editor when the overlay closes', async () => {
+    const container = await openOverlay()
+    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })) })
+    await waitFor(() => { expect(document.querySelector('.spote-mermaid-overlay')).toBeNull() })
+    await waitFor(() => { expect(document.activeElement).toBe(container.querySelector('.ProseMirror')) })
+  })
 })
