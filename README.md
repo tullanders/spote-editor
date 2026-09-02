@@ -38,9 +38,9 @@ export default function App() {
 ## Command plugins
 
 `SpoteEditor` ships with a default set of plugins (`DEFAULT_PLUGINS`) covering
-bold, italic, inline code, link, headings (H1–H3), bullet list, ordered list,
-blockquote, code block, mermaid diagram, image, and divider (horizontal rule).
-You can replace or extend this set via the `plugins` prop.
+headings (H1–H3), bold, italic, inline code, code block, mermaid diagram,
+bullet list, ordered list, blockquote, link, image, and divider (horizontal
+rule). You can replace or extend this set via the `plugins` prop.
 
 ### `SpotePlugin` shape
 

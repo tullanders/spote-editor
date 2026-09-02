@@ -78,8 +78,8 @@ import 'spote-editor/styles'
 ### Built-in named plugins (importable individually)
 
 ```
-bold, italic, code, link, h1, h2, h3,
-bulletList, orderedList, quote, codeBlock, mermaid, image, divider
+h1, h2, h3, bold, italic, code, codeBlock, mermaid,
+bulletList, orderedList, quote, link, image, divider
 ```
 
 `DEFAULT_PLUGINS` is the full set above in the default order.
