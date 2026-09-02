@@ -1,5 +1,5 @@
 import type { Node as ProseNode } from '@milkdown/prose/model'
-import type { EditorView, NodeView } from '@milkdown/prose/view'
+import type { EditorView, NodeView, ViewMutationRecord } from '@milkdown/prose/view'
 import { renderMermaid } from './mermaidRenderer'
 import type { MermaidTheme } from './mermaidRenderer'
 
@@ -81,7 +81,7 @@ export class CodeBlockNodeView implements NodeView {
   }
 
   /** Mutations outside `contentDOM` are our own rendered SVG, not user edits. */
-  ignoreMutation(mutation: MutationRecord): boolean {
+  ignoreMutation(mutation: ViewMutationRecord): boolean {
     return !this.contentDOM.contains(mutation.target)
   }
 
