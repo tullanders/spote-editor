@@ -5,6 +5,18 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0](https://github.com/tullanders/spote-editor/compare/spote-editor-v0.4.0...spote-editor-v0.5.0) (2026-09-03)
+
+
+### Added
+
+* add GitHub Actions workflow for deploying demo to GitHub Pages ([d87d302](https://github.com/tullanders/spote-editor/commit/d87d302e89d1cae534ae9a6566a6b6e8c1326b66))
+
+
+### Documentation
+
+* update README with live demo link and build instructions for demo ([d87d302](https://github.com/tullanders/spote-editor/commit/d87d302e89d1cae534ae9a6566a6b6e8c1326b66))
+
 ## [0.4.0](https://github.com/tullanders/spote-editor/compare/spote-editor-v0.3.0...spote-editor-v0.4.0) (2026-09-03)
 
 
