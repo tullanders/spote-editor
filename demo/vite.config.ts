@@ -2,7 +2,11 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { resolve } from 'path'
 
-export default defineConfig({
+// GitHub Pages serves the demo from https://<user>.github.io/spote-editor/,
+// so the production build (and `vite preview`, which replays it) needs that
+// base. Plain `vite dev` stays at '/' for convenience.
+export default defineConfig(({ command, isPreview }) => ({
+  base: command === 'build' || isPreview ? '/spote-editor/' : '/',
   plugins: [react()],
   resolve: {
     alias: {
@@ -11,4 +15,4 @@ export default defineConfig({
     },
     dedupe: ['react', 'react-dom'],
   },
-})
+}))

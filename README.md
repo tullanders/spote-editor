@@ -3,6 +3,8 @@
 A React editor component published as an npm module.
 Built for [Spote](https://spote.cloud) — markdown notes with MCP support — but usable standalone in any React app.
 
+**[Live demo →](https://tullanders.github.io/spote-editor/)**
+
 ## Under the hood
 
 `SpoteEditor` is a dual-mode markdown editor:
@@ -177,6 +179,9 @@ npm run dev
 
 # Build library
 npm run build
+
+# Build the demo as a static site (what GitHub Pages ships)
+npm run build:demo
 
 # Run tests
 npm test

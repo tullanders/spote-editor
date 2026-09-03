@@ -22,6 +22,7 @@
   "scripts": {
     "dev": "vite demo",
     "build": "tsc -p tsconfig.build.json && vite build",
+    "build:demo": "npm --prefix demo run build",
     "lint": "eslint src",
     "test": "vitest",
     "prepublishOnly": "npm run build"
