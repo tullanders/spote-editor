@@ -36,6 +36,7 @@ export default function App() {
     <div style={{ maxWidth: 720, margin: '40px auto', fontFamily: 'system-ui' }}>
       <h1>SpoteEditor Demo</h1>
       <SpoteEditor
+        defaultMode="raw"
         value={md}
         onChange={setMd}
         plugins={[...DEFAULT_PLUGINS, insertDate]}

@@ -18,6 +18,17 @@ never pay for it.
 
 Both Milkdown and CodeMirror are MIT-licensed.
 
+The editor opens in WYSIWYG mode and has a built-in toggle button. Pass
+`defaultMode="raw"` to open in raw markdown instead:
+
+```tsx
+<SpoteEditor value={md} onChange={setMd} defaultMode="raw" />
+```
+
+`defaultMode` only sets the starting mode — the toggle still works. To own the mode
+yourself, use the controlled `mode` prop together with `onModeChange`; `defaultMode`
+is then ignored.
+
 ## Installation
 
 ```bash

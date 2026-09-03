@@ -11,7 +11,10 @@ export interface NoteHit {
 export interface SpoteEditorProps {
   value: string
   onChange: (md: string) => void
+  /** Controlled mode. When given, the editor never changes mode on its own. */
   mode?: EditorMode
+  /** Mode the editor opens in when uncontrolled. Defaults to `'wysiwyg'`. Ignored if `mode` is set. */
+  defaultMode?: EditorMode
   onModeChange?: (mode: EditorMode) => void
   onSearchNotes?: (query: string) => Promise<NoteHit[]>
   onResolveNoteHref?: (note: NoteHit) => string

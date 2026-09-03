@@ -27,6 +27,18 @@ describe('SpoteEditor shell', () => {
     expect(screen.getByTestId('raw')).toBeInTheDocument()
   })
 
+  it('opens in the mode given by defaultMode and still toggles', async () => {
+    render(<SpoteEditor value="# hi" onChange={vi.fn()} defaultMode="raw" />)
+    expect(screen.getByTestId('raw')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /wysiwyg|formaterad/i }))
+    expect(screen.getByTestId('wysiwyg')).toBeInTheDocument()
+  })
+
+  it('lets a controlled mode win over defaultMode', () => {
+    render(<SpoteEditor value="x" onChange={vi.fn()} mode="wysiwyg" defaultMode="raw" />)
+    expect(screen.getByTestId('wysiwyg')).toBeInTheDocument()
+  })
+
   it('respects controlled mode and calls onModeChange', async () => {
     const onModeChange = vi.fn()
     render(<SpoteEditor value="x" onChange={vi.fn()} mode="raw" onModeChange={onModeChange} />)

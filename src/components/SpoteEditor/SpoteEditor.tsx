@@ -15,14 +15,14 @@ interface PendingLink { position: MenuPosition; resolve: (href: string | null) =
 
 export function SpoteEditor(props: SpoteEditorProps) {
   const {
-    value, onChange, mode: modeProp, onModeChange,
+    value, onChange, mode: modeProp, defaultMode = 'wysiwyg', onModeChange,
     onSearchNotes, onResolveNoteHref, plugins = DEFAULTS,
     readOnly, className, autoFocus, placeholder, onUpload, theme,
   } = props
 
   const resolvedTheme = useResolvedTheme(theme)
 
-  const [internalMode, setInternalMode] = useState<EditorMode>('wysiwyg')
+  const [internalMode, setInternalMode] = useState<EditorMode>(defaultMode)
   const mode = modeProp ?? internalMode
   const [pending, setPending] = useState<PendingLink | null>(null)
 
