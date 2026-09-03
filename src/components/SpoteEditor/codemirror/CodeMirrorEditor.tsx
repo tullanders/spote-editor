@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { EditorState, EditorSelection } from '@codemirror/state'
 import { EditorView, keymap, placeholder as cmPlaceholder } from '@codemirror/view'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
@@ -185,6 +185,8 @@ export function CodeMirrorEditor({ value, onChange, plugins, readOnly, autoFocus
     view.focus()
   }
 
+  const closeBubble = useCallback(() => setBubble(null), [])
+
   const bubble_plugins = bubblePlugins(plugins)
 
   return (
@@ -199,7 +201,7 @@ export function CodeMirrorEditor({ value, onChange, plugins, readOnly, autoFocus
           onMove={menu.move}
         />
       )}
-      {bubble && <SelectionBubble plugins={bubble_plugins} position={bubble} onSelect={runBubble} />}
+      {bubble && <SelectionBubble plugins={bubble_plugins} position={bubble} onSelect={runBubble} onClose={closeBubble} />}
     </div>
   )
 }

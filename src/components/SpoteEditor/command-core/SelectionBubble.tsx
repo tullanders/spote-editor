@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import type { SpotePlugin } from './plugin.types'
 import type { MenuPosition } from './useCommandMenu'
@@ -6,9 +7,21 @@ export interface SelectionBubbleProps {
   plugins: SpotePlugin[]
   position: MenuPosition
   onSelect: (id: string) => void
+  onClose: () => void
 }
 
-export function SelectionBubble({ plugins, position, onSelect }: SelectionBubbleProps) {
+export function SelectionBubble({ plugins, position, onSelect, onClose }: SelectionBubbleProps) {
+  // Own the Escape key here rather than in each engine: CodeMirror collapses the
+  // selection on Escape (`simplifySelection` from its default keymap), which drops
+  // the bubble as a side effect, but ProseMirror has no such binding — so without
+  // this the bubble would linger in WYSIWYG mode. The selection itself is left
+  // alone; only the bubble goes away.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey, true)
+    return () => document.removeEventListener('keydown', onKey, true)
+  }, [onClose])
+
   return createPortal(
     <div className="spote-bubble" style={{ position: 'fixed', left: position.x, top: position.y }}>
       {plugins.map((p) => (

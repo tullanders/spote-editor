@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Editor, rootCtx, defaultValueCtx, editorViewCtx, editorViewOptionsCtx } from '@milkdown/core'
 import { Milkdown, MilkdownProvider, useEditor } from '@milkdown/react'
 import { commonmark } from '@milkdown/preset-commonmark'
@@ -263,6 +263,8 @@ function MilkdownEditorInner({ value, onChange, plugins, readOnly, autoFocus, th
     editor.action((ctx) => ctx.get(editorViewCtx).focus())
   }
 
+  const closeBubble = useCallback(() => setBubble(null), [])
+
   return (
     <div className="spote-editor__milkdown">
       <Milkdown />
@@ -276,7 +278,7 @@ function MilkdownEditorInner({ value, onChange, plugins, readOnly, autoFocus, th
           onMove={menu.move}
         />
       )}
-      {bubble && <SelectionBubble plugins={bubblePlugins(plugins)} position={bubble} onSelect={runBubble} />}
+      {bubble && <SelectionBubble plugins={bubblePlugins(plugins)} position={bubble} onSelect={runBubble} onClose={closeBubble} />}
       {zoomSvg && (
         <MermaidOverlay
           svg={zoomSvg}
