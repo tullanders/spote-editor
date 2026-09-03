@@ -127,6 +127,11 @@ npm test         # Run tests (vitest)
 npm run lint     # ESLint
 ```
 
+Commit messages must follow [Conventional Commits](https://www.conventionalcommits.org/) —
+release-please derives the next version from them. `feat:` bumps the minor, `fix:` the patch,
+and `docs:`/`chore:`/`test:`/`ci:`/`build:`/`style:` release nothing. Never edit the `version`
+field in `package.json` or write `CHANGELOG.md` entries by hand; release-please owns both.
+
 ## Architecture notes
 
 - Two editor engines under the hood: **Milkdown** (WYSIWYG / ProseMirror) and **CodeMirror 6** (raw markdown).

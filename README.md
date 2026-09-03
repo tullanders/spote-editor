@@ -185,13 +185,26 @@ npm test
 npm run lint
 ```
 
-## Publishing
+## Releasing
 
-Tag a commit with a version to trigger the GitHub Actions publish workflow:
+Releases are automated with [release-please](https://github.com/googleapis/release-please).
+Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) —
+that is what decides the next version number:
 
-```bash
-git tag v0.1.0 && git push --tags
-```
+| Commit prefix | Effect while pre-1.0 |
+| --- | --- |
+| `fix:` | patch (0.3.0 → 0.3.1) |
+| `feat:` | minor (0.3.0 → 0.4.0) |
+| `feat!:` / `BREAKING CHANGE:` footer | minor (kept in 0.x) |
+| `docs:`, `chore:`, `test:`, `ci:`, `build:`, `style:` | no release |
+
+On every push to `main`, release-please opens or updates a release PR that bumps
+`package.json` and adds the `CHANGELOG.md` entry. **Merging that PR is the release**: it
+creates the tag and the GitHub Release, then lint, tests and build run once more before
+`npm publish`.
+
+Nothing is published until that PR is merged, so unreleased work can accumulate on `main`
+safely.
 
 ## About Spote
 
