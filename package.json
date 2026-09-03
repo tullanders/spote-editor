@@ -16,7 +16,8 @@
     "./styles": "./dist/style.css"
   },
   "files": [
-    "dist"
+    "dist",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "dev": "vite demo",
