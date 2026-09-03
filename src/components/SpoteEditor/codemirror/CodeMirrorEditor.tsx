@@ -46,6 +46,8 @@ export interface CodeMirrorEditorProps {
   readOnly?: boolean
   autoFocus?: boolean
   placeholder?: string
+  /** Accepted for prop parity with the WYSIWYG editor; raw mode renders no diagrams. */
+  theme?: 'light' | 'dark'
   requestLink: (position: MenuPosition) => Promise<string | null>
   onUpload?: (file: File) => Promise<string>
   pickImage: () => Promise<File | null>

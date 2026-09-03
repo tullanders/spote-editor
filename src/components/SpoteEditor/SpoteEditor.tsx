@@ -7,6 +7,7 @@ import { MilkdownEditor } from './milkdown/MilkdownEditor'
 import { LinkPopover } from './command-core/LinkPopover'
 import type { MenuPosition } from './command-core/useCommandMenu'
 import type { SpotePlugin } from './command-core/plugin.types'
+import { useResolvedTheme } from './useResolvedTheme'
 
 const DEFAULTS: SpotePlugin[] = DEFAULT_PLUGINS
 
@@ -16,8 +17,10 @@ export function SpoteEditor(props: SpoteEditorProps) {
   const {
     value, onChange, mode: modeProp, onModeChange,
     onSearchNotes, onResolveNoteHref, plugins = DEFAULTS,
-    readOnly, className, autoFocus, placeholder, onUpload,
+    readOnly, className, autoFocus, placeholder, onUpload, theme,
   } = props
+
+  const resolvedTheme = useResolvedTheme(theme)
 
   const [internalMode, setInternalMode] = useState<EditorMode>('wysiwyg')
   const mode = modeProp ?? internalMode
@@ -71,6 +74,7 @@ export function SpoteEditor(props: SpoteEditorProps) {
         readOnly={readOnly}
         autoFocus={autoFocus}
         placeholder={placeholder}
+        theme={resolvedTheme}
         requestLink={requestLink}
         onUpload={onUpload}
         pickImage={pickImage}

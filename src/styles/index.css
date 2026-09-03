@@ -127,3 +127,88 @@
   font-size: 13px;
 }
 .spote-link-popover__hits button:hover { background: rgba(59, 109, 240, 0.12); }
+
+/* Mermaid diagrams. Which half is visible is driven by `data-state`, set by the
+   node view from the selection and DOM focus — see mermaidNodeView.ts. */
+.spote-mermaid {
+  border: 1px solid var(--spote-border);
+  border-radius: var(--spote-radius);
+  margin: 12px 0;
+  overflow: hidden;
+}
+.spote-mermaid__preview {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+}
+.spote-mermaid__figure svg { max-width: 100%; height: auto; }
+.spote-mermaid__figure.is-error {
+  color: #b00020;
+  font-family: var(--spote-mono);
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+.spote-mermaid > pre { margin: 0; border: none; border-radius: 0; }
+.spote-mermaid[data-state='preview'] > pre,
+.spote-mermaid[data-state='preview'] > .spote-mermaid__status { display: none; }
+.spote-mermaid[data-state='edit'] > .spote-mermaid__preview { display: none; }
+.spote-mermaid[data-state='preview'] > .spote-mermaid__preview { cursor: pointer; }
+.spote-mermaid__status {
+  padding: 4px 12px;
+  font-family: var(--spote-mono);
+  font-size: 12px;
+  border-top: 1px solid var(--spote-border);
+  min-height: 20px;
+}
+.spote-mermaid__status.is-error { color: #b00020; }
+
+.spote-mermaid__zoom {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  padding: 2px 6px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms ease;
+  background: var(--spote-popover-bg, #ffffff);
+  color: var(--spote-fg);
+  border: 1px solid var(--spote-border);
+  border-radius: 6px;
+}
+.spote-mermaid__preview:hover .spote-mermaid__zoom,
+.spote-mermaid__zoom:focus { opacity: 1; }
+
+.spote-mermaid-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+}
+.spote-mermaid-overlay__figure {
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: auto;
+  padding: 16px;
+  background: var(--spote-bg, #ffffff);
+  border-radius: var(--spote-radius, 10px);
+}
+.spote-mermaid-overlay__figure svg { max-width: 100%; height: auto; }
+.spote-mermaid-overlay__close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  background: var(--spote-popover-bg, #ffffff);
+  color: var(--spote-fg, #1a1a1a);
+  border: 1px solid var(--spote-border, #d8dce3);
+  border-radius: 50%;
+}

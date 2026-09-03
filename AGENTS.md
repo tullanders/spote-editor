@@ -42,6 +42,9 @@ interface SpoteEditorProps {
   // Plugins
   plugins?: SpotePlugin[]                              // Defaults to DEFAULT_PLUGINS
 
+  // Diagrams
+  theme?: 'light' | 'dark' | 'auto'                    // Mermaid diagram theme; defaults to 'auto'
+
   // Misc
   placeholder?: string
   readOnly?: boolean
@@ -75,8 +78,8 @@ import 'spote-editor/styles'
 ### Built-in named plugins (importable individually)
 
 ```
-bold, italic, code, link, h1, h2, h3,
-bulletList, orderedList, quote, codeBlock, divider
+h1, h2, h3, bold, italic, code, codeBlock, mermaid,
+bulletList, orderedList, quote, link, image, divider
 ```
 
 `DEFAULT_PLUGINS` is the full set above in the default order.
@@ -130,3 +133,17 @@ npm run lint     # ESLint
 - Both engines share a single markdown string as source of truth — toggling modes is lossless.
 - Bundle is ~400 kB gzipped (expected given two full editor engines).
 - Tests live next to source files (`*.test.ts` / `*.test.tsx`), run with vitest.
+- ` ```mermaid ` code blocks render as diagrams in WYSIWYG mode. The block stays an
+  ordinary fenced code block in the document — the diagram is a ProseMirror node view,
+  so markdown round-trip is unaffected and raw markdown mode always shows the plain
+  fence. Mermaid is loaded lazily on first render and is marked `external` in the build,
+  so it doesn't inflate `spote-editor`'s own bundle.
+- A mermaid block shows its source only while the editor has DOM focus *and* the
+  selection sits inside it as the result of an actual user action (a click or arrow-key
+  move into the block) — not merely because the selection happens to be there, which
+  guards against `autoFocus` opening a block it never touched. It reverts to the
+  rendered diagram on blur or once the selection leaves. This state is derived live from
+  focus and selection, never stored.
+- A `⤢` button, shown on hover/focus in the corner of a rendered diagram, opens it
+  full-screen; Escape or a click on the scrim closes it. It works in `readOnly` too,
+  since it never requires entering edit mode.

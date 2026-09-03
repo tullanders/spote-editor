@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { bold, italic, code, link, h1, bulletList, quote, codeBlock, divider, image, DEFAULT_PLUGINS } from './index'
+import { bold, italic, code, link, h1, bulletList, quote, codeBlock, mermaid, divider, image, DEFAULT_PLUGINS } from './index'
 
 const ui = { requestLink: async () => 'https://x', pickImage: async () => new File(['x'], 'a.png', { type: 'image/png' }) }
 
@@ -29,6 +29,11 @@ describe('built-in plugins', () => {
     expect(divider.slash!({ ui })).toEqual({ kind: 'insert', markdown: '\n---\n' })
   })
 
+  it('mermaid inserts a seeded diagram fence', () => {
+    const action = mermaid.slash!({ ui })
+    expect(action).toEqual({ kind: 'insert', markdown: '```mermaid\ngraph TD\n  A --> B\n```\n' })
+  })
+
   it('image (slash) picks a file and returns an uploadImage action', async () => {
     const file = new File(['x'], 'a.png', { type: 'image/png' })
     const pickUi = { requestLink: async () => null, pickImage: async () => file }
@@ -45,6 +50,6 @@ describe('built-in plugins', () => {
   it('DEFAULT_PLUGINS has unique ids and the v1 set', () => {
     const ids = DEFAULT_PLUGINS.map((p) => p.id)
     expect(new Set(ids).size).toBe(ids.length)
-    expect(ids).toEqual(expect.arrayContaining(['bold','italic','code','link','h1','h2','h3','bulletList','orderedList','quote','codeBlock','divider','image']))
+    expect(ids).toEqual(expect.arrayContaining(['bold','italic','code','link','h1','h2','h3','bulletList','orderedList','quote','codeBlock','mermaid','divider','image']))
   })
 })

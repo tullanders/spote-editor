@@ -7,4 +7,7 @@ export const bulletList: SpotePlugin = { id: 'bulletList', label: 'Bullet list',
 export const orderedList: SpotePlugin = { id: 'orderedList', label: 'Numbered list', icon: '1.', slash: () => ({ kind: 'setBlock', block: 'orderedList' }) }
 export const quote: SpotePlugin = { id: 'quote', label: 'Quote', icon: '❝', slash: () => ({ kind: 'setBlock', block: 'blockquote' }) }
 export const codeBlock: SpotePlugin = { id: 'codeBlock', label: 'Code block', icon: '{}', slash: () => ({ kind: 'setBlock', block: 'codeBlock' }) }
+// Seeded with a small valid diagram rather than an empty fence: an empty mermaid
+// block renders an error message, which is a poor first impression.
+export const mermaid: SpotePlugin = { id: 'mermaid', label: 'Diagram', icon: '⌗', slash: () => ({ kind: 'insert', markdown: '```mermaid\ngraph TD\n  A --> B\n```\n' }) }
 export const divider: SpotePlugin = { id: 'divider', label: 'Divider', icon: '―', slash: () => ({ kind: 'insert', markdown: '\n---\n' }) }

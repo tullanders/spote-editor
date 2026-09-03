@@ -27,7 +27,10 @@ const insertDate: SpotePlugin = {
 }
 
 export default function App() {
-  const [md, setMd] = useState('# Hello\n\nSelect a word and try the bubble. Type `/` for the menu (incl. "Date").')
+  const [md, setMd] = useState(
+    '# Hello\n\nSelect a word and try the bubble. Type `/` for the menu (incl. "Date").\n\n' +
+    '```mermaid\ngraph LR\n  Idea --> Draft --> Note\n```\n',
+  )
 
   return (
     <div style={{ maxWidth: 720, margin: '40px auto', fontFamily: 'system-ui' }}>

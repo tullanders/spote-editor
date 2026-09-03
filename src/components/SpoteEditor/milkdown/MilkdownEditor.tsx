@@ -17,6 +17,9 @@ import type { MenuPosition } from '../command-core/useCommandMenu'
 import { applyAction } from './applyAction'
 import { createSlashPlugin } from './slashPlugin'
 import { createTaskCheckboxPlugin } from './taskCheckboxPlugin'
+import { createMermaidPlugin, SET_MERMAID_THEME, RESET_MERMAID_SELECTION } from './mermaidPlugin'
+import type { MermaidTheme } from './mermaidRenderer'
+import { MermaidOverlay } from './MermaidOverlay'
 import { imageFilesFrom, nextUploadId, placeholderSrc } from '../command-core/imageUpload'
 
 function findImageBySrc(view: ProseView, src: string): { pos: number; nodeSize: number; attrs: Record<string, unknown> } | null {
@@ -64,6 +67,8 @@ export interface MilkdownEditorProps {
   autoFocus?: boolean
   /** Accepted for prop parity with the raw editor; not yet applied in WYSIWYG (v1). */
   placeholder?: string
+  /** Diagram rendering theme, already resolved from the public `theme` prop. */
+  theme?: MermaidTheme
   requestLink: (position: MenuPosition) => Promise<string | null>
   onUpload?: (file: File) => Promise<string>
   pickImage: () => Promise<File | null>
@@ -73,9 +78,10 @@ export interface MilkdownEditorProps {
  * Inner component: must live under a {@link MilkdownProvider} so `useEditor` and
  * the `<Milkdown />` mount point share editor context.
  */
-function MilkdownEditorInner({ value, onChange, plugins, readOnly, autoFocus, requestLink, onUpload, pickImage }: MilkdownEditorProps) {
+function MilkdownEditorInner({ value, onChange, plugins, readOnly, autoFocus, theme, requestLink, onUpload, pickImage }: MilkdownEditorProps) {
   const menu = useCommandMenu(slashPlugins(plugins))
   const [bubble, setBubble] = useState<MenuPosition | null>(null)
+  const [zoomSvg, setZoomSvg] = useState<string | null>(null)
 
   // The editor factory runs once; route through refs so it always sees latest.
   const menuRef = useRef(menu); menuRef.current = menu
@@ -84,6 +90,7 @@ function MilkdownEditorInner({ value, onChange, plugins, readOnly, autoFocus, re
   const readOnlyRef = useRef(readOnly); readOnlyRef.current = readOnly
   const onUploadRef = useRef(onUpload); onUploadRef.current = onUpload
   const pickImageRef = useRef(pickImage); pickImageRef.current = pickImage
+  const themeRef = useRef<MermaidTheme>(theme ?? 'light'); themeRef.current = theme ?? 'light'
   const triggerPosRef = useRef(0)
   // Last markdown we emitted, used to guard the controlled reconcile loop.
   const lastMarkdownRef = useRef(value)
@@ -144,7 +151,8 @@ function MilkdownEditorInner({ value, onChange, plugins, readOnly, autoFocus, re
           }),
         ),
       )
-      .use($prose(() => createTaskCheckboxPlugin())),
+      .use($prose(() => createTaskCheckboxPlugin()))
+      .use($prose(() => createMermaidPlugin({ initialTheme: themeRef.current, onZoom: setZoomSvg }))),
   )
 
   // Focus once the editor has finished creating (autoFocus at setup only).
@@ -164,8 +172,38 @@ function MilkdownEditorInner({ value, onChange, plugins, readOnly, autoFocus, re
     if (value === lastMarkdownRef.current) return
     lastMarkdownRef.current = value
     editor.action(replaceAll(value))
+    // `replaceAll` dispatches `tr.replace(0, size, slice)`, which does not set
+    // `selectionSet` — so the mermaid plugin's `selectionMoved` latch would
+    // otherwise survive into this new document, and the mapped cursor could land
+    // inside a mermaid block here even though nothing the user did opened it. This
+    // is the one moment the document stops being the one the user was working in,
+    // so it is the one place the latch gets forced back to false.
+    editor.action((ctx) => {
+      const view = ctx.get(editorViewCtx)
+      view.dispatch(view.state.tr.setMeta(RESET_MERMAID_SELECTION, true))
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value])
+
+  // Push a theme change into the editor as an ordinary transaction. The plugin's
+  // decorations then differ, which is what makes ProseMirror call every mermaid node
+  // view's update() so already-rendered diagrams re-render in the new theme.
+  //
+  // Also depends on `get()`, mirroring the `autoFocus` effect above: if `theme`
+  // changes (or is already non-default) before the editor finishes creating, this
+  // bails out with nothing dispatched. Without `get()` in the deps, that theme is
+  // then lost — the plugin keeps `initialTheme` and nothing corrects it until the
+  // next *change* to `theme`, which may never come. Re-running once `get()` starts
+  // returning the editor picks up `themeRef.current` regardless.
+  useEffect(() => {
+    const editor = get()
+    if (!editor) return
+    editor.action((ctx) => {
+      const view = ctx.get(editorViewCtx)
+      view.dispatch(view.state.tr.setMeta(SET_MERMAID_THEME, themeRef.current))
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [theme, get()])
 
   async function runSlash(id: string) {
     const editor = get()
@@ -239,6 +277,15 @@ function MilkdownEditorInner({ value, onChange, plugins, readOnly, autoFocus, re
         />
       )}
       {bubble && <SelectionBubble plugins={bubblePlugins(plugins)} position={bubble} onSelect={runBubble} />}
+      {zoomSvg && (
+        <MermaidOverlay
+          svg={zoomSvg}
+          onClose={() => {
+            setZoomSvg(null)
+            get()?.action((ctx) => ctx.get(editorViewCtx).focus())
+          }}
+        />
+      )}
     </div>
   )
 }
